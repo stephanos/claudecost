@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
   private var statusItem: NSStatusItem?
   private var timer: Timer?
+  private var refreshTask: Task<Void, Never>?
   private var state = AppState()
   private let loginItemManager = LoginItemManager()
   private var startAtLoginViewState = StartAtLoginViewState.make(status: .notRegistered)
@@ -35,6 +36,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   func applicationWillTerminate(_ notification: Notification) {
     timer?.invalidate()
     timer = nil
+    refreshTask?.cancel()
+    refreshTask = nil
+    UsageFetcher.cancelActiveHelper()
   }
 
   func menuNeedsUpdate(_ menu: NSMenu) {
@@ -71,13 +75,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     state = nextState
     renderTitle()
 
-    Task {
+    refreshTask?.cancel()
+    refreshTask = Task {
       do {
         let snapshot = try await UsageFetcher.fetchUsage()
         applyRefreshSuccess(snapshot)
       } catch {
+        guard !Task.isCancelled else {
+          return
+        }
         applyRefreshFailure(error)
       }
+
+      refreshTask = nil
     }
   }
 

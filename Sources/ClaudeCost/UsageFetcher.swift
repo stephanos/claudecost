@@ -3,6 +3,7 @@ import Foundation
 private final class ProcessCompletionState: @unchecked Sendable {
   private let lock = NSLock()
   private var hasResumed = false
+  private var timedOut = false
 
   func tryMarkResumed() -> Bool {
     lock.lock()
@@ -14,6 +15,46 @@ private final class ProcessCompletionState: @unchecked Sendable {
 
     hasResumed = true
     return true
+  }
+
+  func markTimedOut() {
+    lock.lock()
+    defer { lock.unlock() }
+    timedOut = true
+  }
+
+  func didTimeOut() -> Bool {
+    lock.lock()
+    defer { lock.unlock() }
+    return timedOut
+  }
+}
+
+private final class HelperProcessRegistry: @unchecked Sendable {
+  private let lock = NSLock()
+  private var process: Process?
+
+  func set(_ process: Process) {
+    lock.lock()
+    defer { lock.unlock() }
+    self.process = process
+  }
+
+  func clear(_ process: Process) {
+    lock.lock()
+    defer { lock.unlock() }
+
+    guard self.process === process else {
+      return
+    }
+
+    self.process = nil
+  }
+
+  func currentProcess() -> Process? {
+    lock.lock()
+    defer { lock.unlock() }
+    return process
   }
 }
 
@@ -63,17 +104,36 @@ enum UsageFetcherError: LocalizedError {
 
 enum UsageFetcher {
   private static let helperTimeout: TimeInterval = 30
+  private static let helperTerminationGracePeriod: TimeInterval = 2
+  private static let helperTerminationPollInterval: UInt32 = 50_000
+  private static let helperRegistry = HelperProcessRegistry()
 
   static func fetchUsage() async throws -> UsageSnapshot {
-    let monthStart = currentMonthStartString()
-    let helperURL = try usageHelperURL()
+    try await withTaskCancellationHandler {
+      let monthStart = currentMonthStartString()
+      let helperURL = try usageHelperURL()
 
-    let output = try await runHelper(at: helperURL, arguments: [monthStart])
-    return try UsagePayloadParser.decodeSnapshot(from: output)
+      let output = try await runHelper(at: helperURL, arguments: [monthStart])
+      return try UsagePayloadParser.decodeSnapshot(from: output)
+    } onCancel: {
+      cancelActiveHelper()
+    }
   }
 
   static func shouldTimeOut(processIsRunning: Bool) -> Bool {
     processIsRunning
+  }
+
+  static func shouldEscalateTermination(processIsRunning: Bool, waitedEnough: Bool) -> Bool {
+    processIsRunning && waitedEnough
+  }
+
+  static func cancelActiveHelper() {
+    guard let process = helperRegistry.currentProcess() else {
+      return
+    }
+
+    terminateAndReap(process)
   }
 
   private static func usageHelperURL() throws -> URL {
@@ -121,11 +181,18 @@ enum UsageFetcher {
       process.standardError = stderr
 
       process.terminationHandler = { process in
+        helperRegistry.clear(process)
+
         let stdoutData = stdout.fileHandleForReading.readDataToEndOfFile()
         let stderrData = stderr.fileHandleForReading.readDataToEndOfFile()
         let stderrString =
           String(data: stderrData, encoding: .utf8)?
           .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        if completionState.didTimeOut() {
+          resumeOnce(with: .failure(UsageFetcherError.timedOut(helperURL.path)))
+          return
+        }
 
         guard process.terminationStatus == 0 else {
           resumeOnce(
@@ -144,6 +211,7 @@ enum UsageFetcher {
 
       do {
         try process.run()
+        helperRegistry.set(process)
       } catch {
         resumeOnce(with: .failure(UsageFetcherError.failedToStart))
         return
@@ -154,9 +222,38 @@ enum UsageFetcher {
           return
         }
 
-        process.terminate()
+        completionState.markTimedOut()
+        terminateAndReap(process)
         resumeOnce(with: .failure(UsageFetcherError.timedOut(helperURL.path)))
       }
+    }
+  }
+
+  private static func terminateAndReap(_ process: Process) {
+    guard process.processIdentifier > 0 else {
+      return
+    }
+
+    if process.isRunning {
+      process.terminate()
+    }
+
+    waitForExit(of: process, timeout: helperTerminationGracePeriod)
+
+    if shouldEscalateTermination(
+      processIsRunning: process.isRunning,
+      waitedEnough: true
+    ) {
+      kill(process.processIdentifier, SIGKILL)
+      waitForExit(of: process, timeout: helperTerminationGracePeriod)
+    }
+  }
+
+  private static func waitForExit(of process: Process, timeout: TimeInterval) {
+    let deadline = Date().addingTimeInterval(timeout)
+
+    while process.isRunning && Date() < deadline {
+      usleep(helperTerminationPollInterval)
     }
   }
 
