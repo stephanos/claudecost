@@ -65,9 +65,18 @@ private func testConfigureOnLaunchSuppressesTransientNotFound() throws {
 
   let state = manager.configureOnLaunch()
 
-  try expect(defaults.bool(forKey: "startAtLoginEnabled"), "first launch should still store preference")
-  try expect(!service.didRegister, "launch should not attempt registration from transient notFound")
-  try expect(state.status == .notRegistered, "transient notFound should be suppressed on launch")
+  try expect(
+    defaults.bool(forKey: "startAtLoginEnabled"),
+    "first launch should still store preference"
+  )
+  try expect(
+    !service.didRegister,
+    "launch should not attempt registration from transient notFound"
+  )
+  try expect(
+    state.status == .notRegistered,
+    "transient notFound should be suppressed on launch"
+  )
   try expect(state.message == nil, "suppressed notFound should not show an error message")
 }
 
