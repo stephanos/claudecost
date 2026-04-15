@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-version="$(tr -d '[:space:]' < tooling/version.txt)"
+version="${CLAUDECOST_VERSION:-0.0.0-dev}"
 plist_path="${1:?output plist path required}"
 
 cat >"${plist_path}" <<EOF
