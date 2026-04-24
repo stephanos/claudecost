@@ -34,7 +34,7 @@ func testLoginItemManager() throws {
 }
 
 private func testConfigureOnLaunchDefaultsToEnabled() throws {
-  let defaultsName = "ClaudeCostTestHarness.\(UUID().uuidString)"
+  let defaultsName = "AgentTallyTestHarness.\(UUID().uuidString)"
   let defaults = UserDefaults(suiteName: defaultsName)!
   defaults.removePersistentDomain(forName: defaultsName)
 
@@ -52,7 +52,7 @@ private func testConfigureOnLaunchDefaultsToEnabled() throws {
 }
 
 private func testConfigureOnLaunchSuppressesTransientNotFound() throws {
-  let defaultsName = "ClaudeCostTestHarness.\(UUID().uuidString)"
+  let defaultsName = "AgentTallyTestHarness.\(UUID().uuidString)"
   let defaults = UserDefaults(suiteName: defaultsName)!
   defaults.removePersistentDomain(forName: defaultsName)
 
@@ -81,7 +81,7 @@ private func testConfigureOnLaunchSuppressesTransientNotFound() throws {
 }
 
 private func testSetEnabledAttemptsRegistrationFromNotFound() throws {
-  let defaultsName = "ClaudeCostTestHarness.\(UUID().uuidString)"
+  let defaultsName = "AgentTallyTestHarness.\(UUID().uuidString)"
   let defaults = UserDefaults(suiteName: defaultsName)!
   defaults.removePersistentDomain(forName: defaultsName)
 
@@ -100,7 +100,7 @@ private func testSetEnabledAttemptsRegistrationFromNotFound() throws {
 }
 
 private func testSetEnabledSurfacesRegistrationErrors() throws {
-  let defaultsName = "ClaudeCostTestHarness.\(UUID().uuidString)"
+  let defaultsName = "AgentTallyTestHarness.\(UUID().uuidString)"
   let defaults = UserDefaults(suiteName: defaultsName)!
   defaults.removePersistentDomain(forName: defaultsName)
 

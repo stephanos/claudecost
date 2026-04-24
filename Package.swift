@@ -2,19 +2,19 @@
 import PackageDescription
 
 let package = Package(
-  name: "ClaudeCost",
+  name: "AgentTally",
   platforms: [
     .macOS(.v13)
   ],
   products: [
     .executable(
-      name: "ClaudeCost",
-      targets: ["ClaudeCost"]
+      name: "AgentTally",
+      targets: ["AgentTally"]
     )
   ],
   targets: [
     .executableTarget(
-      name: "ClaudeCost"
+      name: "AgentTally"
     )
   ]
 )

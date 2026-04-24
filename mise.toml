@@ -22,12 +22,12 @@ depends = ["build-helper"]
 description = "Build release app bundle"
 
 [tasks.dev]
-run = "bash scripts/build_app.sh debug && .build/debug/ClaudeCost.app/Contents/MacOS/ClaudeCost"
+run = "bash scripts/build_app.sh debug && .build/debug/AgentTally.app/Contents/MacOS/AgentTally"
 depends = ["build-helper"]
 description = "Build and run debug app bundle"
 
 [tasks.run]
-run = ".build/release/ClaudeCost.app/Contents/MacOS/ClaudeCost"
+run = ".build/release/AgentTally.app/Contents/MacOS/AgentTally"
 depends = ["build"]
 description = "Build release app bundle and run"
 

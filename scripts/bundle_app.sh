@@ -2,11 +2,11 @@
 set -euo pipefail
 
 configuration="${1:-debug}"
-app_dir=".build/${configuration}/ClaudeCost.app"
+app_dir=".build/${configuration}/AgentTally.app"
 contents_dir="${app_dir}/Contents"
 macos_dir="${contents_dir}/MacOS"
-executable=".build/${configuration}/ClaudeCost"
-helper=".build/claudecost-usage-helper"
+executable=".build/${configuration}/AgentTally"
+helper=".build/agenttally-usage-helper"
 plist_path="${contents_dir}/Info.plist"
 
 if [[ ! -x "${executable}" ]]; then
@@ -22,6 +22,6 @@ fi
 rm -rf "${app_dir}"
 mkdir -p "${macos_dir}"
 
-cp "${executable}" "${macos_dir}/ClaudeCost"
-cp "${helper}" "${macos_dir}/claudecost-usage-helper"
+cp "${executable}" "${macos_dir}/AgentTally"
+cp "${helper}" "${macos_dir}/agenttally-usage-helper"
 bash scripts/generate_info_plist.sh "${plist_path}"

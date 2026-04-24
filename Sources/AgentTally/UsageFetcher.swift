@@ -141,7 +141,7 @@ enum UsageFetcher {
   }
 
   private static func usageHelperURL() throws -> URL {
-    if let override = ProcessInfo.processInfo.environment["CLAUDECOST_HELPER_PATH"],
+    if let override = ProcessInfo.processInfo.environment["AGENTTALLY_HELPER_PATH"],
       !override.isEmpty
     {
       let url = URL(fileURLWithPath: override).standardizedFileURL
@@ -153,9 +153,9 @@ enum UsageFetcher {
     let executableURL = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
     let executableDirectory = executableURL.deletingLastPathComponent()
     let candidates = [
-      executableDirectory.appendingPathComponent("claudecost-usage-helper"),
+      executableDirectory.appendingPathComponent("agenttally-usage-helper"),
       executableDirectory.deletingLastPathComponent().appendingPathComponent(
-        "claudecost-usage-helper"),
+        "agenttally-usage-helper"),
     ]
 
     for candidate in candidates where FileManager.default.isExecutableFile(atPath: candidate.path) {

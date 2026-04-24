@@ -17,7 +17,7 @@ func testMenuRowsBuilder() throws {
   )
 
   try expect(
-    rows.first == .disabled("Claude Code spend v0.1"),
+    rows.first == .disabled("AgentTally v0.1"),
     "menu should start with versioned header"
   )
   try expect(

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-version="${CLAUDECOST_VERSION:-0.0.0-dev}"
+version="${AGENTTALLY_VERSION:-0.0.0-dev}"
 plist_path="${1:?output plist path required}"
 
 cat >"${plist_path}" <<EOF
@@ -12,13 +12,13 @@ cat >"${plist_path}" <<EOF
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleExecutable</key>
-  <string>ClaudeCost</string>
+  <string>AgentTally</string>
   <key>CFBundleIdentifier</key>
-  <string>dev.stephanos.claudecost</string>
+  <string>dev.stephanos.agenttally</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>ClaudeCost</string>
+  <string>AgentTally</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

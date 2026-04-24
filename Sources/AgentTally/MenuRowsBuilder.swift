@@ -74,9 +74,9 @@ public enum MenuRowsBuilder {
     guard let appVersion = appVersion?.trimmingCharacters(in: .whitespacesAndNewlines),
       !appVersion.isEmpty
     else {
-      return "Claude Code spend"
+      return "AgentTally"
     }
 
-    return "Claude Code spend v\(appVersion)"
+    return "AgentTally v\(appVersion)"
   }
 }

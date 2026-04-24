@@ -8,17 +8,17 @@ mkdir -p .build
 bash scripts/build_swift.sh
 
 swiftc \
-  -module-name ClaudeCostTestHarness \
-  -o .build/claudecost-test-harness \
-  Sources/ClaudeCost/AppState.swift \
-  Sources/ClaudeCost/LoginItemManager.swift \
-  Sources/ClaudeCost/MenuRowsBuilder.swift \
-  Sources/ClaudeCost/PowerSource.swift \
-  Sources/ClaudeCost/StatusPresenter.swift \
-  Sources/ClaudeCost/TimeUtils.swift \
-  Sources/ClaudeCost/UsageFetcher.swift \
-  Sources/ClaudeCost/UsagePayloadParser.swift \
-  Sources/ClaudeCost/UsageRefreshController.swift \
+  -module-name AgentTallyTestHarness \
+  -o .build/agenttally-test-harness \
+  Sources/AgentTally/AppState.swift \
+  Sources/AgentTally/LoginItemManager.swift \
+  Sources/AgentTally/MenuRowsBuilder.swift \
+  Sources/AgentTally/PowerSource.swift \
+  Sources/AgentTally/StatusPresenter.swift \
+  Sources/AgentTally/TimeUtils.swift \
+  Sources/AgentTally/UsageFetcher.swift \
+  Sources/AgentTally/UsagePayloadParser.swift \
+  Sources/AgentTally/UsageRefreshController.swift \
   Tests/TestSupport.swift \
   Tests/StatusPresenterHarness.swift \
   Tests/UsageRefreshControllerHarness.swift \
@@ -29,4 +29,4 @@ swiftc \
   Tests/LoginItemHarness.swift \
   Tests/HarnessMain.swift
 
-.build/claudecost-test-harness
+.build/agenttally-test-harness

@@ -123,7 +123,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     state = UsageRefreshController.applyFailure(error: error, to: state)
     renderTitle()
     if let lastError = state.lastError, !lastError.isEmpty {
-      NSLog("claudecost refresh failed: %@", lastError)
+      NSLog("agenttally refresh failed: %@", lastError)
     }
     refreshMenuIfNeeded()
   }
