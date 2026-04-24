@@ -24,6 +24,12 @@ func testMenuRowsBuilder() throws {
     rows.contains(.disabled("Today: $49")),
     "today cost should round up to the next display dollar"
   )
+  let spendingLabelIndex = rows.firstIndex(of: .section("Claude Code spending"))
+  let todayIndex = rows.firstIndex(of: .disabled("Today: $49"))
+  try expect(
+    spendingLabelIndex != nil && todayIndex != nil && spendingLabelIndex! + 1 == todayIndex!,
+    "menu should place the spending source label directly above the spending rows"
+  )
   try expect(
     rows.contains(.disabled("Month: $209 (4 biz days)")),
     "month cost should round up to the next display dollar"

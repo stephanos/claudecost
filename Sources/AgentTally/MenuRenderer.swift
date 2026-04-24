@@ -25,6 +25,16 @@ enum MenuRenderer {
       let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
       item.isEnabled = false
       return item
+    case .section(let title):
+      let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+      item.isEnabled = false
+      item.attributedTitle = NSAttributedString(
+        string: title,
+        attributes: [
+          .font: NSFont.systemFont(ofSize: 13, weight: .semibold)
+        ]
+      )
+      return item
     case .separator:
       return .separator()
     case .action(let title, let kind, let keyEquivalent, let state):

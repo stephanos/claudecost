@@ -14,6 +14,7 @@ public enum MenuActionKind: Equatable {
 
 public enum MenuRow: Equatable {
   case disabled(String)
+  case section(String)
   case separator
   case action(title: String, kind: MenuActionKind, keyEquivalent: String, state: MenuCheckState)
 }
@@ -31,6 +32,7 @@ public enum MenuRowsBuilder {
     ]
 
     if state.lastRefreshAt != nil, state.lastError == nil {
+      rows.append(.section("Claude Code spending"))
       rows.append(.disabled("Today: $\(StatusPresenter.displayDollarAmount(for: state.todayCost))"))
       rows.append(
         .disabled(
