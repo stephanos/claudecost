@@ -2,7 +2,9 @@
 
 [![release](https://img.shields.io/github/v/release/stephanos/agenttally-macos)](https://github.com/stephanos/agenttally-macos/releases/latest)
 
-`AgentTally` is a standalone macOS menu bar app that shows AI agent usage and spend for today and the current month. It refreshes every 60s.
+`AgentTally` is a standalone macOS menu bar app for tracking AI agent usage and spend.
+
+Right now, only Claude Code is supported. The app shows your Claude Code spend for today and the current month, and refreshes every 60s.
 
 ![AgentTally menu bar screenshot](docs/menu-bar.png)
 
