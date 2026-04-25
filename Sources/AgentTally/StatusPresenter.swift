@@ -20,7 +20,7 @@ public enum StatusPresenter {
       return "ERR CC"
     }
 
-    if state.isRefreshing && shouldShowLoadingTitle(lastRefreshAt: state.lastRefreshAt, now: now) {
+    if shouldShowLoadingTitle(lastRefreshAt: state.lastRefreshAt, now: now) {
       return "? CC"
     }
 
