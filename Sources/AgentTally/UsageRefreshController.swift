@@ -38,11 +38,17 @@ enum UsageRefreshController {
     var nextState = state
     nextState.isRefreshing = false
     nextState.lastRefreshAt = now
-    nextState.todayCost = snapshot.today
-    nextState.monthCost = snapshot.month
     nextState.businessDays = TimeUtils.businessDaysThisMonth(now: now)
-    nextState.avgPerDay =
-      nextState.businessDays > 0 ? nextState.monthCost / Double(nextState.businessDays) : 0
+    nextState.agentSpendings = snapshot.agents.map { raw in
+      AgentSpending(
+        name: raw.name,
+        isInstalled: raw.found,
+        todayCost: raw.today,
+        monthCost: raw.month,
+        avgPerDay: nextState.businessDays > 0 && raw.found
+          ? raw.month / Double(nextState.businessDays) : 0
+      )
+    }
     if pricingMode == .online {
       nextState.lastOnlinePricingRefreshAt = now
     }

@@ -5,6 +5,7 @@
     "": {
       "name": "claudecost-helper",
       "dependencies": {
+        "@ccusage/codex": "^18.0.11",
         "ccusage": "18.0.11",
       },
       "devDependencies": {
@@ -13,6 +14,8 @@
     },
   },
   "packages": {
+    "@ccusage/codex": ["@ccusage/codex@18.0.11", "", { "bin": { "ccusage-codex": "dist/index.js" } }, "sha512-/S0dyaO3yDegtGXTaMhu1ZyT3JbSuHsiUiIu9uP6UmqIAtSd9DOko1qkM6K1roePbF/rlk596GDHW1f0664D3A=="],
+
     "ccusage": ["ccusage@18.0.11", "", { "bin": { "ccusage": "dist/index.js" } }, "sha512-QIFCY2gh06vjWelND1gDwJxrniAcNkPw0OHUhz985iE7FIEf738YVzxUKQMKhA2fO9CIJCz0dSpnyIufaKdjdA=="],
 
     "prettier": ["prettier@3.6.2", "", { "bin": { "prettier": "bin/prettier.cjs" } }, "sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ=="],

@@ -4,12 +4,16 @@ func testUsagePayloadParser() throws {
   let output = Data(
     """
     [ccusage] WARN Fetching pricing
-    {"today":48.35,"month":208.12}
+    {"agents":[{"name":"Claude Code","found":true,"today":48.35,"month":208.12},{"name":"Codex","found":false,"today":0,"month":0}]}
     """.utf8)
 
   let snapshot = try UsagePayloadParser.decodeSnapshot(from: output)
-  try expect(snapshot.today == 48.35, "today payload should decode")
-  try expect(snapshot.month == 208.12, "month payload should decode")
+  let claude = snapshot.agents.first(where: { $0.name == "Claude Code" })
+  let codex = snapshot.agents.first(where: { $0.name == "Codex" })
+  try expect(claude?.today == 48.35, "today payload should decode")
+  try expect(claude?.month == 208.12, "month payload should decode")
+  try expect(claude?.found == true, "claude found flag should decode")
+  try expect(codex?.found == false, "codex not-installed flag should decode")
 
   do {
     _ = try UsagePayloadParser.decodeSnapshot(from: Data("not json".utf8))

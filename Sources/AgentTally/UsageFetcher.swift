@@ -58,18 +58,18 @@ private final class HelperProcessRegistry: @unchecked Sendable {
   }
 }
 
-struct UsagePayload: Codable {
-  let today: Double
-  let month: Double
+public struct AgentRawData: Sendable {
+  public let name: String
+  public let found: Bool
+  public let today: Double
+  public let month: Double
 }
 
 public struct UsageSnapshot: Sendable {
-  public let today: Double
-  public let month: Double
+  public let agents: [AgentRawData]
 
-  public init(today: Double, month: Double) {
-    self.today = today
-    self.month = month
+  public init(agents: [AgentRawData]) {
+    self.agents = agents
   }
 }
 

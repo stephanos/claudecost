@@ -1,13 +1,15 @@
 import Foundation
 
 func testMenuRowsBuilder() throws {
+  let claudeSpending = AgentSpending(name: "Claude Code", isInstalled: true, todayCost: 48.35, monthCost: 208.12, avgPerDay: 52.03)
+  let codexSpending = AgentSpending(name: "Codex", isInstalled: true, todayCost: 10.0, monthCost: 40.0, avgPerDay: 10.0)
+  let codexNotInstalled = AgentSpending(name: "Codex", isInstalled: false, todayCost: 0, monthCost: 0, avgPerDay: 0)
+
   let rows = MenuRowsBuilder.rows(
     for: AppState(
       isRefreshing: false,
-      todayCost: 48.35,
-      monthCost: 208.12,
+      agentSpendings: [claudeSpending, codexSpending],
       businessDays: 4,
-      avgPerDay: 52.03,
       lastRefreshAt: Date(timeIntervalSinceReferenceDate: 1_000),
       lastError: nil
     ),
@@ -20,6 +22,12 @@ func testMenuRowsBuilder() throws {
     rows.first == .disabled("AgentTally v0.1"),
     "menu should start with versioned header"
   )
+  let headerIndex = rows.firstIndex(of: .disabled("AgentTally v0.1"))!
+  if case .disabled(let label) = rows[headerIndex + 1] {
+    try expect(label.hasPrefix("Last refreshed:"), "last updated should appear directly below the header")
+  } else {
+    throw TestFailure(description: "row after header should be 'Last refreshed:' disabled item")
+  }
   try expect(
     rows.contains(.disabled("Today: $49")),
     "today cost should round up to the next display dollar"
@@ -38,6 +46,42 @@ func testMenuRowsBuilder() throws {
     rows.contains(.disabled("Avg/Day: $53")),
     "average cost should round up to the next display dollar"
   )
+
+  // Codex section present and separated
+  let claudeSectionIdx = rows.firstIndex(of: .section("Claude Code spending"))!
+  let separatorAfterClaude = rows.dropFirst(claudeSectionIdx + 1).firstIndex(of: .separator)
+  let codexSectionIdx = rows.firstIndex(of: .section("Codex spending"))
+  try expect(
+    separatorAfterClaude != nil && codexSectionIdx != nil,
+    "menu should have a separator between Claude Code and Codex sections"
+  )
+  try expect(
+    rows.contains(.disabled("Today: $10")),
+    "Codex today cost should be shown"
+  )
+  try expect(
+    rows.contains(.disabled("Month: $40 (4 biz days)")),
+    "Codex month cost should be shown"
+  )
+
+  // Codex not installed
+  let rowsCodexMissing = MenuRowsBuilder.rows(
+    for: AppState(
+      agentSpendings: [claudeSpending, codexNotInstalled],
+      businessDays: 4,
+      lastRefreshAt: Date(timeIntervalSinceReferenceDate: 1_000)
+    ),
+    startAtLogin: .make(status: .enabled)
+  )
+  try expect(
+    rowsCodexMissing.contains(.disabled("Codex: not installed")),
+    "Codex not installed should show 'not installed' row"
+  )
+  try expect(
+    !rowsCodexMissing.contains(.section("Codex spending")),
+    "Codex not installed should not show spending section"
+  )
+
   try expect(
     rows.contains(
       .action(
@@ -58,10 +102,8 @@ func testMenuRowsBuilder() throws {
   let refreshingRows = MenuRowsBuilder.rows(
     for: AppState(
       isRefreshing: true,
-      todayCost: 48.35,
-      monthCost: 208.12,
+      agentSpendings: [claudeSpending, codexSpending],
       businessDays: 4,
-      avgPerDay: 52.03,
       lastRefreshAt: Date(timeIntervalSinceReferenceDate: 1_000),
       lastError: nil
     ),
@@ -75,10 +117,8 @@ func testMenuRowsBuilder() throws {
   let errorRows = MenuRowsBuilder.rows(
     for: AppState(
       isRefreshing: false,
-      todayCost: 48.35,
-      monthCost: 208.12,
+      agentSpendings: [claudeSpending, codexSpending],
       businessDays: 4,
-      avgPerDay: 52.03,
       lastRefreshAt: Date(timeIntervalSinceReferenceDate: 1_000),
       lastError: "helper timed out"
     ),
@@ -89,7 +129,17 @@ func testMenuRowsBuilder() throws {
     "refresh failures should surface the localized error message in the menu"
   )
   try expect(
-    !errorRows.contains(.disabled("Today: $48.35")),
+    !errorRows.contains(.disabled("Today: $49")),
     "error state should hide stale summary rows"
+  )
+
+  // No agent data yet (before first refresh)
+  let emptyRows = MenuRowsBuilder.rows(
+    for: AppState(agentSpendings: []),
+    startAtLogin: .make(status: .enabled)
+  )
+  try expect(
+    !emptyRows.contains(.section("Claude Code spending")),
+    "no spending sections before first refresh"
   )
 }

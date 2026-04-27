@@ -86,15 +86,16 @@ private func testApplySuccess() throws {
   )!
   let state = AppState(
     isRefreshing: true,
-    todayCost: 1,
-    monthCost: 2,
+    agentSpendings: [],
     businessDays: 3,
-    avgPerDay: 4,
     lastRefreshAt: nil,
     lastOnlinePricingRefreshAt: nil,
     lastError: "old error"
   )
-  let snapshot = UsageSnapshot(today: 48.35, month: 208.12)
+  let snapshot = UsageSnapshot(agents: [
+    AgentRawData(name: "Claude Code", found: true, today: 48.35, month: 208.12),
+    AgentRawData(name: "Codex", found: false, today: 0, month: 0),
+  ])
 
   let nextState = UsageRefreshController.applySuccess(
     snapshot: snapshot,
@@ -103,12 +104,16 @@ private func testApplySuccess() throws {
     now: now
   )
 
+  let claude = nextState.agentSpendings.first(where: { $0.name == "Claude Code" })
+  let codex = nextState.agentSpendings.first(where: { $0.name == "Codex" })
+
   try expect(!nextState.isRefreshing, "successful refresh should clear refreshing state")
   try expect(nextState.lastRefreshAt == now, "successful refresh should update last refresh time")
-  try expect(nextState.todayCost == 48.35, "successful refresh should update today cost")
-  try expect(nextState.monthCost == 208.12, "successful refresh should update month cost")
+  try expect(claude?.todayCost == 48.35, "successful refresh should update today cost")
+  try expect(claude?.monthCost == 208.12, "successful refresh should update month cost")
   try expect(nextState.businessDays == 2, "successful refresh should recompute business days")
-  try expectNear(nextState.avgPerDay, 104.06, "successful refresh should recompute average")
+  try expectNear(claude?.avgPerDay ?? 0, 104.06, "successful refresh should recompute average")
+  try expect(codex?.isInstalled == false, "not-installed agent should be reflected in state")
   try expect(
     nextState.lastOnlinePricingRefreshAt == now,
     "online refresh should update last online pricing refresh time"
@@ -118,12 +123,11 @@ private func testApplySuccess() throws {
 
 private func testApplyFailure() throws {
   let now = Date(timeIntervalSinceReferenceDate: 3_000)
+  let spending = AgentSpending(name: "Claude Code", isInstalled: true, todayCost: 48.35, monthCost: 208.12, avgPerDay: 52.03)
   let state = AppState(
     isRefreshing: true,
-    todayCost: 48.35,
-    monthCost: 208.12,
+    agentSpendings: [spending],
     businessDays: 4,
-    avgPerDay: 52.03,
     lastRefreshAt: Date(timeIntervalSinceReferenceDate: 2_500),
     lastOnlinePricingRefreshAt: Date(timeIntervalSinceReferenceDate: 2_400),
     lastError: nil
@@ -135,10 +139,12 @@ private func testApplyFailure() throws {
     now: now
   )
 
+  let claude = nextState.agentSpendings.first(where: { $0.name == "Claude Code" })
+
   try expect(!nextState.isRefreshing, "failed refresh should clear refreshing state")
   try expect(
     nextState.lastRefreshAt == now, "failed refresh should record when the failure happened")
   try expect(nextState.lastError == "helper timed out", "failed refresh should surface the error")
-  try expect(nextState.todayCost == 48.35, "failed refresh should preserve cached today cost")
-  try expect(nextState.monthCost == 208.12, "failed refresh should preserve cached month cost")
+  try expect(claude?.todayCost == 48.35, "failed refresh should preserve cached today cost")
+  try expect(claude?.monthCost == 208.12, "failed refresh should preserve cached month cost")
 }

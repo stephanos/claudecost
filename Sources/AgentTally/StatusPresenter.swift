@@ -25,13 +25,26 @@ public enum StatusPresenter {
     }
 
     if state.lastRefreshAt != nil {
-      return "$\(displayDollarAmount(for: state.todayCost)) CC"
+      let parts = state.agentSpendings
+        .filter { $0.isInstalled }
+        .map { "$\(displayDollarAmount(for: $0.todayCost)) \(abbreviation(for: $0.name))" }
+      if !parts.isEmpty {
+        return parts.joined(separator: " ")
+      }
     }
 
     return "? CC"
   }
 
-  public static func lastUpdatedLabel(for state: AppState, now: Date = Date()) -> String {
+  private static func abbreviation(for agentName: String) -> String {
+    switch agentName {
+    case "Claude Code": return "CC"
+    case "Codex": return "CX"
+    default: return agentName
+    }
+  }
+
+  public static func lastRefreshedLabel(for state: AppState, now: Date = Date()) -> String {
     if state.isRefreshing, state.lastRefreshAt == nil {
       return "refreshing..."
     }

@@ -28,28 +28,44 @@ public enum MenuRowsBuilder {
   ) -> [MenuRow] {
     var rows: [MenuRow] = [
       .disabled(headerTitle(appVersion: appVersion)),
-      .separator,
+      .disabled("Last refreshed: \(StatusPresenter.lastRefreshedLabel(for: state, now: now))"),
     ]
 
-    if state.lastRefreshAt != nil, state.lastError == nil {
-      rows.append(.section("Claude Code spending"))
-      rows.append(.disabled("Today: $\(StatusPresenter.displayDollarAmount(for: state.todayCost))"))
-      rows.append(
-        .disabled(
-          "Month: $\(StatusPresenter.displayDollarAmount(for: state.monthCost)) (\(state.businessDays) biz days)"
-        )
-      )
-      rows.append(
-        .disabled("Avg/Day: $\(StatusPresenter.displayDollarAmount(for: state.avgPerDay))")
-      )
+    if state.isRefreshing {
+      rows.append(.disabled("Refreshing ..."))
+    } else {
+      rows.append(.action(title: "Refresh", kind: .refresh, keyEquivalent: "", state: .off))
     }
 
-    if let lastError = state.lastError, !lastError.isEmpty {
-      rows.append(.disabled("Error: \(lastError)"))
+    rows.append(.separator)
+
+    if state.lastRefreshAt != nil {
+      var isFirst = true
+      for spending in state.agentSpendings {
+        if !isFirst { rows.append(.separator) }
+        isFirst = false
+
+        if spending.isInstalled, state.lastError == nil {
+          rows.append(.section("\(spending.name) spending"))
+          rows.append(.disabled("Today: $\(StatusPresenter.displayDollarAmount(for: spending.todayCost))"))
+          rows.append(
+            .disabled(
+              "Month: $\(StatusPresenter.displayDollarAmount(for: spending.monthCost)) (\(state.businessDays) biz days)"
+            )
+          )
+          rows.append(
+            .disabled("Avg/Day: $\(StatusPresenter.displayDollarAmount(for: spending.avgPerDay))")
+          )
+        } else if !spending.isInstalled {
+          rows.append(.disabled("\(spending.name): not installed"))
+        }
+      }
+
+      if let lastError = state.lastError, !lastError.isEmpty {
+        rows.append(.disabled("Error: \(lastError)"))
+      }
     }
 
-    rows.append(
-      .disabled("Last updated: \(StatusPresenter.lastUpdatedLabel(for: state, now: now))"))
     rows.append(.separator)
     rows.append(
       .action(
@@ -64,11 +80,6 @@ public enum MenuRowsBuilder {
       rows.append(.disabled(message))
     }
 
-    if state.isRefreshing {
-      rows.append(.disabled("Refreshing ..."))
-    } else {
-      rows.append(.action(title: "Refresh", kind: .refresh, keyEquivalent: "", state: .off))
-    }
     rows.append(.action(title: "Quit", kind: .quit, keyEquivalent: "q", state: .off))
 
     return rows

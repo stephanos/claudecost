@@ -10,6 +10,7 @@ bash scripts/build_swift.sh
 swiftc \
   -module-name AgentTallyTestHarness \
   -o .build/agenttally-test-harness \
+  Sources/AgentTally/AgentSpending.swift \
   Sources/AgentTally/AppState.swift \
   Sources/AgentTally/LoginItemManager.swift \
   Sources/AgentTally/MenuRowsBuilder.swift \

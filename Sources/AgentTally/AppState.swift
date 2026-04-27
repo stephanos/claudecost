@@ -7,29 +7,23 @@ public enum PricingRefreshMode: Equatable {
 
 public struct AppState {
   public var isRefreshing = false
-  public var todayCost = 0.0
-  public var monthCost = 0.0
+  public var agentSpendings: [AgentSpending] = []
   public var businessDays = 0
-  public var avgPerDay = 0.0
   public var lastRefreshAt: Date?
   public var lastOnlinePricingRefreshAt: Date?
   public var lastError: String?
 
   public init(
     isRefreshing: Bool = false,
-    todayCost: Double = 0.0,
-    monthCost: Double = 0.0,
+    agentSpendings: [AgentSpending] = [],
     businessDays: Int = 0,
-    avgPerDay: Double = 0.0,
     lastRefreshAt: Date? = nil,
     lastOnlinePricingRefreshAt: Date? = nil,
     lastError: String? = nil
   ) {
     self.isRefreshing = isRefreshing
-    self.todayCost = todayCost
-    self.monthCost = monthCost
+    self.agentSpendings = agentSpendings
     self.businessDays = businessDays
-    self.avgPerDay = avgPerDay
     self.lastRefreshAt = lastRefreshAt
     self.lastOnlinePricingRefreshAt = lastOnlinePricingRefreshAt
     self.lastError = lastError
