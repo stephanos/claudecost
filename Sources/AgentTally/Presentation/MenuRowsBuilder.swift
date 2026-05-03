@@ -28,6 +28,87 @@ public enum MenuRowsBuilder {
     appVersion: String? = nil,
     now: Date = Date()
   ) -> [MenuRow] {
+    var rows = spendingRows(for: state, now: now)
+    if !rows.isEmpty {
+      rows.append(.separator)
+    }
+    rows.append(
+      contentsOf: appRows(
+        for: state,
+        startAtLogin: startAtLogin,
+        softwareUpdate: softwareUpdate,
+        appVersion: appVersion,
+        now: now
+      )
+    )
+
+    return rows
+  }
+
+  private static func spendingRows(for state: AppState, now: Date) -> [MenuRow] {
+    guard state.lastRefreshAt != nil else {
+      return []
+    }
+
+    var rows: [MenuRow] = []
+    var isFirst = true
+    var renderedAgents = Set<AgentKind>()
+    for spending in state.agentSpendings {
+      if !isFirst { rows.append(.separator) }
+      isFirst = false
+
+      let agent = AgentKind(displayName: spending.name)
+      if let agent {
+        renderedAgents.insert(agent)
+      }
+
+      if spending.isInstalled {
+        rows.append(.section("\(spending.name) spending"))
+        rows.append(
+          .disabled("Today: $\(StatusPresenter.displayDollarAmount(for: spending.todayCost))"))
+        rows.append(
+          .disabled(
+            "Month: $\(StatusPresenter.displayDollarAmount(for: spending.monthCost)) (\(state.businessDays) biz days)"
+          )
+        )
+        rows.append(
+          .disabled("Avg/Day: $\(StatusPresenter.displayDollarAmount(for: spending.avgPerDay))")
+        )
+        rows.append(
+          .disabled(
+            "Last usage: \(StatusPresenter.lastUsageDetectedLabel(for: spending.lastUsageDetectedAt, now: now))"
+          )
+        )
+      } else if !spending.isInstalled {
+        rows.append(.disabled("\(spending.name): not installed"))
+      }
+
+      if let agent, let error = state.lastErrorByAgent[agent], !error.isEmpty {
+        rows.append(.disabled("Error: \(error)"))
+      }
+    }
+
+    for agent in AgentKind.allCases where !renderedAgents.contains(agent) {
+      guard let error = state.lastErrorByAgent[agent], !error.isEmpty else {
+        continue
+      }
+
+      if !isFirst { rows.append(.separator) }
+      isFirst = false
+      rows.append(.section("\(agent.displayName) spending"))
+      rows.append(.disabled("Error: \(error)"))
+    }
+
+    return rows
+  }
+
+  private static func appRows(
+    for state: AppState,
+    startAtLogin: StartAtLoginViewState,
+    softwareUpdate: SoftwareUpdateViewState,
+    appVersion: String?,
+    now: Date
+  ) -> [MenuRow] {
     var rows: [MenuRow] = [
       .disabled(headerTitle(appVersion: appVersion))
     ]
@@ -50,59 +131,6 @@ public enum MenuRowsBuilder {
       rows.append(.action(title: "Refresh", kind: .refresh, keyEquivalent: "", state: .off))
     }
 
-    rows.append(.separator)
-
-    if state.lastRefreshAt != nil {
-      var isFirst = true
-      var renderedAgents = Set<AgentKind>()
-      for spending in state.agentSpendings {
-        if !isFirst { rows.append(.separator) }
-        isFirst = false
-
-        let agent = AgentKind(displayName: spending.name)
-        if let agent {
-          renderedAgents.insert(agent)
-        }
-
-        if spending.isInstalled {
-          rows.append(.section("\(spending.name) spending"))
-          rows.append(
-            .disabled("Today: $\(StatusPresenter.displayDollarAmount(for: spending.todayCost))"))
-          rows.append(
-            .disabled(
-              "Month: $\(StatusPresenter.displayDollarAmount(for: spending.monthCost)) (\(state.businessDays) biz days)"
-            )
-          )
-          rows.append(
-            .disabled("Avg/Day: $\(StatusPresenter.displayDollarAmount(for: spending.avgPerDay))")
-          )
-          rows.append(
-            .disabled(
-              "Last usage: \(StatusPresenter.lastUsageDetectedLabel(for: spending.lastUsageDetectedAt, now: now))"
-            )
-          )
-        } else if !spending.isInstalled {
-          rows.append(.disabled("\(spending.name): not installed"))
-        }
-
-        if let agent, let error = state.lastErrorByAgent[agent], !error.isEmpty {
-          rows.append(.disabled("Error: \(error)"))
-        }
-      }
-
-      for agent in AgentKind.allCases where !renderedAgents.contains(agent) {
-        guard let error = state.lastErrorByAgent[agent], !error.isEmpty else {
-          continue
-        }
-
-        if !isFirst { rows.append(.separator) }
-        isFirst = false
-        rows.append(.section("\(agent.displayName) spending"))
-        rows.append(.disabled("Error: \(error)"))
-      }
-    }
-
-    rows.append(.separator)
     rows.append(
       .action(
         title: "Open at Login",

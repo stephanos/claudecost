@@ -35,10 +35,19 @@ func testMenuRowsBuilder() throws {
   )
 
   try expect(
-    rows.first == .disabled("AgentTally v0.1"),
-    "menu should start with versioned header"
+    rows.first == .section("Claude Code spending"),
+    "menu should start with spending sections after data is available"
   )
   let headerIndex = rows.firstIndex(of: .disabled("AgentTally v0.1"))!
+  let codexSectionIdx = rows.firstIndex(of: .section("Codex spending"))
+  try expect(
+    codexSectionIdx != nil && codexSectionIdx! < headerIndex,
+    "app controls should appear below spending sections"
+  )
+  try expect(
+    rows[headerIndex - 1] == .separator,
+    "spending sections should be separated from the bottom app section"
+  )
   try expect(
     rows[headerIndex + 1]
       == .action(
@@ -47,7 +56,7 @@ func testMenuRowsBuilder() throws {
         keyEquivalent: "",
         state: .off
       ),
-    "row after header should be update action"
+    "first row in the bottom app section should be update action"
   )
   if case .disabled(let label) = rows[headerIndex + 2] {
     try expect(
@@ -82,7 +91,6 @@ func testMenuRowsBuilder() throws {
   // Codex section present and separated
   let claudeSectionIdx = rows.firstIndex(of: .section("Claude Code spending"))!
   let separatorAfterClaude = rows.dropFirst(claudeSectionIdx + 1).firstIndex(of: .separator)
-  let codexSectionIdx = rows.firstIndex(of: .section("Codex spending"))
   try expect(
     separatorAfterClaude != nil && codexSectionIdx != nil,
     "menu should have a separator between Claude Code and Codex sections"
@@ -157,6 +165,10 @@ func testMenuRowsBuilder() throws {
       )
     ),
     "menu should contain start at login toggle"
+  )
+  try expect(
+    rows.last == .action(title: "Quit", kind: .quit, keyEquivalent: "q", state: .off),
+    "quit should be the final row in the bottom app section"
   )
   try expect(
     MenuRowsBuilder.rows(for: AppState(), startAtLogin: .make(status: .requiresApproval))
