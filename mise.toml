@@ -34,7 +34,7 @@ description = "Build release app bundle and run"
 [tasks.install]
 run = "bash scripts/install.sh"
 depends = ["build"]
-description = "Build and install to ~/Applications"
+description = "Build and install to /Applications"
 
 [tasks.clean]
 run = "swift package clean"

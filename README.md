@@ -39,7 +39,7 @@ mise install
 mise run install
 ```
 
-The install task copies the bundle to `~/Applications/AgentTally.app` and launches it.
+The install task copies the bundle to `/Applications/AgentTally.app` and launches it.
 It also enables "Open at Login" by default the first time the app runs.
 
 For local development:
