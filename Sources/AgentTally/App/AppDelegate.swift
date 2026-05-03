@@ -14,14 +14,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   private var lastSuccessfulAgentData: [AgentKind: AgentRawData] = [:]
   private var lastUsageDataFingerprints: [AgentKind: UsageDataFingerprint] = [:]
   private let loginItemManager = LoginItemManager()
-  private let updaterController = SPUStandardUpdaterController(
+  private lazy var updaterController = SPUStandardUpdaterController(
     startingUpdater: true,
-    updaterDelegate: nil,
-    userDriverDelegate: nil
+    updaterDelegate: self,
+    userDriverDelegate: self
   )
   private var startAtLoginViewState = StartAtLoginViewState.make(status: .notRegistered)
+  private var softwareUpdateViewState = SoftwareUpdateViewState.idle
 
   func applicationDidFinishLaunching(_ notification: Notification) {
+    _ = updaterController
+
     let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     self.statusItem = statusItem
 
@@ -237,6 +240,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let rows = MenuRowsBuilder.rows(
       for: state,
       startAtLogin: startAtLoginViewState,
+      softwareUpdate: softwareUpdateViewState,
       appVersion: appVersion()
     )
     MenuRenderer.render(menu: menu, rows: rows, target: self, selectorProvider: selector)
@@ -269,5 +273,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     case .quit:
       return #selector(quitMenuItemSelected)
     }
+  }
+
+  private func noteAvailableUpdate(version: String) {
+    softwareUpdateViewState = SoftwareUpdateViewState(availableVersion: version)
+    refreshMenuIfNeeded()
+  }
+}
+
+extension AppDelegate: SPUUpdaterDelegate {
+  func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+    noteAvailableUpdate(version: item.displayVersionString)
+  }
+
+  func updaterDidNotFindUpdate(_ updater: SPUUpdater, error: Error) {
+    softwareUpdateViewState = .idle
+    refreshMenuIfNeeded()
+  }
+
+  func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
+    softwareUpdateViewState = .idle
+    refreshMenuIfNeeded()
+  }
+}
+
+extension AppDelegate: SPUStandardUserDriverDelegate {
+  nonisolated func standardUserDriverShouldHandleShowingScheduledUpdate(
+    _ update: SUAppcastItem,
+    andInImmediateFocus immediateFocus: Bool
+  ) -> Bool {
+    let version = update.displayVersionString
+    Task { @MainActor [weak self] in
+      self?.noteAvailableUpdate(version: version)
+    }
+    return false
   }
 }

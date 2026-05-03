@@ -24,13 +24,25 @@ public enum MenuRowsBuilder {
   public static func rows(
     for state: AppState,
     startAtLogin: StartAtLoginViewState,
+    softwareUpdate: SoftwareUpdateViewState = .idle,
     appVersion: String? = nil,
     now: Date = Date()
   ) -> [MenuRow] {
     var rows: [MenuRow] = [
-      .disabled(headerTitle(appVersion: appVersion)),
-      .disabled("Last refreshed: \(StatusPresenter.lastRefreshedLabel(for: state, now: now))"),
+      .disabled(headerTitle(appVersion: appVersion))
     ]
+
+    rows.append(
+      .action(
+        title: softwareUpdate.menuTitle,
+        kind: .checkForUpdates,
+        keyEquivalent: "",
+        state: .off
+      )
+    )
+
+    rows.append(
+      .disabled("Last refreshed: \(StatusPresenter.lastRefreshedLabel(for: state, now: now))"))
 
     if state.isRefreshing {
       rows.append(.disabled("Refreshing ..."))
@@ -91,9 +103,6 @@ public enum MenuRowsBuilder {
     }
 
     rows.append(.separator)
-    rows.append(
-      .action(title: "Check for Updates...", kind: .checkForUpdates, keyEquivalent: "", state: .off)
-    )
     rows.append(
       .action(
         title: "Open at Login",
