@@ -7,13 +7,20 @@ mkdir -p .build
 # caught by `mise run test`, not only by the release bundle build in CI.
 bash scripts/build_swift.sh
 
-mapfile -t source_files < <(
+source_files=()
+while IFS= read -r file; do
+  source_files+=("${file}")
+done < <(
   find Sources/AgentTally \
     -name '*.swift' \
     ! -path 'Sources/AgentTally/App/*' \
     | sort
 )
-mapfile -t test_files < <(
+
+test_files=()
+while IFS= read -r file; do
+  test_files+=("${file}")
+done < <(
   find Tests \
     -name '*.swift' \
     ! -name 'HarnessMain.swift' \
