@@ -6,7 +6,9 @@
 
 Right now, only Claude Code is supported. The app shows your Claude Code spend for today and the current month, and refreshes every 60s.
 
-![AgentTally menu bar screenshot](docs/menu-bar.png)
+<p align="center">
+  <img src="docs/menu-bar.png" alt="AgentTally menu bar screenshot">
+</p>
 
 ## Install
 
