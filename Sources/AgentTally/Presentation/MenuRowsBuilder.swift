@@ -32,13 +32,13 @@ public enum MenuRowsBuilder {
     if !rows.isEmpty {
       rows.append(.separator)
     }
+    rows.append(contentsOf: refreshRows(for: state, now: now))
+    rows.append(.separator)
     rows.append(
       contentsOf: appRows(
-        for: state,
         startAtLogin: startAtLogin,
         softwareUpdate: softwareUpdate,
-        appVersion: appVersion,
-        now: now
+        appVersion: appVersion
       )
     )
 
@@ -103,11 +103,9 @@ public enum MenuRowsBuilder {
   }
 
   private static func appRows(
-    for state: AppState,
     startAtLogin: StartAtLoginViewState,
     softwareUpdate: SoftwareUpdateViewState,
-    appVersion: String?,
-    now: Date
+    appVersion: String?
   ) -> [MenuRow] {
     var rows: [MenuRow] = [
       .disabled(headerTitle(appVersion: appVersion))
@@ -123,15 +121,6 @@ public enum MenuRowsBuilder {
     )
 
     rows.append(
-      .disabled("Last refreshed: \(StatusPresenter.lastRefreshedLabel(for: state, now: now))"))
-
-    if state.isRefreshing {
-      rows.append(.disabled("Refreshing ..."))
-    } else {
-      rows.append(.action(title: "Refresh", kind: .refresh, keyEquivalent: "", state: .off))
-    }
-
-    rows.append(
       .action(
         title: "Open at Login",
         kind: .startAtLogin,
@@ -145,6 +134,20 @@ public enum MenuRowsBuilder {
     }
 
     rows.append(.action(title: "Quit", kind: .quit, keyEquivalent: "q", state: .off))
+
+    return rows
+  }
+
+  private static func refreshRows(for state: AppState, now: Date) -> [MenuRow] {
+    var rows: [MenuRow] = [
+      .disabled("Last refreshed: \(StatusPresenter.lastRefreshedLabel(for: state, now: now))")
+    ]
+
+    if state.isRefreshing {
+      rows.append(.disabled("Refreshing ..."))
+    } else {
+      rows.append(.action(title: "Refresh", kind: .refresh, keyEquivalent: "", state: .off))
+    }
 
     return rows
   }

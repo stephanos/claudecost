@@ -46,7 +46,36 @@ func testMenuRowsBuilder() throws {
   )
   try expect(
     rows[headerIndex - 1] == .separator,
-    "spending sections should be separated from the bottom app section"
+    "refresh rows should be separated from the app controls section"
+  )
+  let lastRefreshedIndex = rows.firstIndex { row in
+    if case .disabled(let label) = row {
+      return label.hasPrefix("Last refreshed:")
+    }
+    return false
+  }
+  guard let lastRefreshedIndex else {
+    throw TestFailure(description: "menu should include a last refreshed row")
+  }
+  try expect(
+    rows[lastRefreshedIndex - 1] == .separator,
+    "spending sections should be separated from refresh rows"
+  )
+  if case .disabled(let label) = rows[lastRefreshedIndex] {
+    try expect(
+      label.hasPrefix("Last refreshed:"), "last refreshed should lead the refresh section")
+  } else {
+    throw TestFailure(
+      description: "first row in the refresh section should be 'Last refreshed:'")
+  }
+  try expect(
+    rows[lastRefreshedIndex + 1]
+      == .action(title: "Refresh", kind: .refresh, keyEquivalent: "", state: .off),
+    "refresh action should appear below the last refreshed row"
+  )
+  try expect(
+    rows[lastRefreshedIndex + 2] == .separator,
+    "refresh rows should be separated from app controls"
   )
   try expect(
     rows[headerIndex + 1]
@@ -56,15 +85,8 @@ func testMenuRowsBuilder() throws {
         keyEquivalent: "",
         state: .off
       ),
-    "first row in the bottom app section should be update action"
+    "update action should appear directly below the version row"
   )
-  if case .disabled(let label) = rows[headerIndex + 2] {
-    try expect(
-      label.hasPrefix("Last refreshed:"), "last refreshed should appear below the update action")
-  } else {
-    throw TestFailure(
-      description: "row after update action should be 'Last refreshed:' disabled item")
-  }
   try expect(
     rows.contains(.disabled("Today: $49")),
     "today cost should round up to the next display dollar"
@@ -144,15 +166,15 @@ func testMenuRowsBuilder() throws {
     appVersion: "0.7",
     now: now
   )
+  let updateAvailableHeaderIndex = updateAvailableRows.firstIndex(of: .disabled("AgentTally v0.7"))!
   try expect(
-    updateAvailableRows.prefix(2).contains(
-      .action(
+    updateAvailableRows[updateAvailableHeaderIndex + 1]
+      == .action(
         title: "Update Available: v0.8...",
         kind: .checkForUpdates,
         keyEquivalent: "",
         state: .off
-      )
-    ),
+      ),
     "available updates should be visible directly below the header"
   )
   try expect(
