@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import Sparkle
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -13,6 +14,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   private var lastSuccessfulAgentData: [AgentKind: AgentRawData] = [:]
   private var lastUsageDataFingerprints: [AgentKind: UsageDataFingerprint] = [:]
   private let loginItemManager = LoginItemManager()
+  private let updaterController = SPUStandardUpdaterController(
+    startingUpdater: true,
+    updaterDelegate: nil,
+    userDriverDelegate: nil
+  )
   private var startAtLoginViewState = StartAtLoginViewState.make(status: .notRegistered)
 
   func applicationDidFinishLaunching(_ notification: Notification) {
@@ -58,6 +64,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let shouldEnable = sender.state != .on
     startAtLoginViewState = loginItemManager.setEnabled(shouldEnable)
     refreshMenuIfNeeded()
+  }
+
+  @objc
+  private func checkForUpdatesMenuItemSelected(_ sender: NSMenuItem) {
+    updaterController.checkForUpdates(sender)
   }
 
   @objc
@@ -253,6 +264,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       return #selector(startAtLoginMenuItemSelected(_:))
     case .refresh:
       return #selector(refreshMenuItemSelected)
+    case .checkForUpdates:
+      return #selector(checkForUpdatesMenuItemSelected(_:))
     case .quit:
       return #selector(quitMenuItemSelected)
     }

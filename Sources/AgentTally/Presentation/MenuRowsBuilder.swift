@@ -9,6 +9,7 @@ public enum MenuCheckState: Equatable {
 public enum MenuActionKind: Equatable {
   case startAtLogin
   case refresh
+  case checkForUpdates
   case quit
 }
 
@@ -90,6 +91,9 @@ public enum MenuRowsBuilder {
     }
 
     rows.append(.separator)
+    rows.append(
+      .action(title: "Check for Updates...", kind: .checkForUpdates, keyEquivalent: "", state: .off)
+    )
     rows.append(
       .action(
         title: "Open at Login",

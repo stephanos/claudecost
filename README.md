@@ -4,7 +4,7 @@
 
 `AgentTally` is a standalone macOS menu bar app for tracking AI agent spending.
 
-Right now, only Claude Code is supported. The app shows your Claude Code spend for today and the current month, and refreshes every 60s.
+The app shows Claude Code and Codex spend for today and the current month, and refreshes every 60s.
 
 <p align="center">
   <img src="docs/menu-bar.png" alt="AgentTally menu bar screenshot">
@@ -24,6 +24,9 @@ Then:
 4. Open `AgentTally.app`
 
 On first launch, macOS may ask you to confirm opening the app.
+
+AgentTally checks GitHub Releases for updates once per day and includes a
+`Check for Updates...` menu item.
 
 ## Development
 
@@ -49,3 +52,17 @@ mise run dev
 ```
 
 `mise` manages the Bun toolchain for this project and uses the system Swift toolchain. The build tasks install the local `ccusage` dependency, compile the helper, and stage both binaries into `AgentTally.app`.
+
+## Releases
+
+Release archives are signed for Sparkle updates with an EdDSA key. For local
+releases, the private key is read from the macOS Keychain. For GitHub Actions,
+set `SPARKLE_PRIVATE_ED_KEY` to the value exported by:
+
+```sh
+.build/artifacts/sparkle/Sparkle/bin/generate_keys -x sparkle_private_key
+```
+
+The app bundle is ad-hoc code signed by default so Sparkle can verify release
+archives without requiring an Apple Developer ID certificate. Set
+`CODESIGN_IDENTITY` to use a real signing identity later.

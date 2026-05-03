@@ -110,6 +110,17 @@ func testMenuRowsBuilder() throws {
   try expect(
     rows.contains(
       .action(
+        title: "Check for Updates...",
+        kind: .checkForUpdates,
+        keyEquivalent: "",
+        state: .off
+      )
+    ),
+    "menu should contain update check action"
+  )
+  try expect(
+    rows.contains(
+      .action(
         title: "Open at Login",
         kind: .startAtLogin,
         keyEquivalent: "",
