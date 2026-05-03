@@ -10,6 +10,7 @@ func testUsageRefreshController() throws {
   try testBeginRefreshUsesOfflinePricingOnBattery()
   try testBeginRefreshUsesOfflinePricingWithinOnlineRefreshWindow()
   try testBeginRefreshUsesOnlinePricingAfterRefreshWindow()
+  try testAgentsNeedingRefreshDecision()
   try testApplySuccess()
   try testApplyFailure()
 }
@@ -80,6 +81,67 @@ private func testBeginRefreshUsesOnlinePricingAfterRefreshWindow() throws {
   )
 }
 
+private func testAgentsNeedingRefreshDecision() throws {
+  let claudeFingerprint = UsageDataFingerprint(value: "claude")
+  let codexFingerprint = UsageDataFingerprint(value: "codex")
+  let changedCodexFingerprint = UsageDataFingerprint(value: "codex-changed")
+  let scan = UsageDataScan(agents: [
+    .claude: AgentUsageDataScan(
+      agent: .claude,
+      fingerprint: claudeFingerprint,
+      lastUsageDetectedAt: nil
+    ),
+    .codex: AgentUsageDataScan(
+      agent: .codex,
+      fingerprint: changedCodexFingerprint,
+      lastUsageDetectedAt: nil
+    ),
+  ])
+  let cachedAgentData: [AgentKind: AgentRawData] = [
+    .claude: AgentRawData(name: "Claude Code", found: true, today: 1, month: 2),
+    .codex: AgentRawData(name: "Codex", found: true, today: 3, month: 4),
+  ]
+
+  try expect(
+    UsageRefreshController.agentsNeedingRefresh(
+      pricingMode: .offline,
+      currentUsageDataScan: scan,
+      cachedUsageDataFingerprints: [
+        .claude: claudeFingerprint,
+        .codex: codexFingerprint,
+      ],
+      cachedAgentData: cachedAgentData
+    ) == [.codex],
+    "offline refresh should only request agents with changed usage data"
+  )
+
+  try expect(
+    UsageRefreshController.agentsNeedingRefresh(
+      pricingMode: .offline,
+      currentUsageDataScan: scan,
+      cachedUsageDataFingerprints: [
+        .claude: claudeFingerprint,
+        .codex: changedCodexFingerprint,
+      ],
+      cachedAgentData: [.claude: cachedAgentData[.claude]!]
+    ) == [.codex],
+    "offline refresh should request agents missing cached data"
+  )
+
+  try expect(
+    UsageRefreshController.agentsNeedingRefresh(
+      pricingMode: .online,
+      currentUsageDataScan: scan,
+      cachedUsageDataFingerprints: [
+        .claude: claudeFingerprint,
+        .codex: changedCodexFingerprint,
+      ],
+      cachedAgentData: cachedAgentData
+    ) == AgentKind.allCases,
+    "online refresh should request all agents because pricing may change"
+  )
+}
+
 private func testApplySuccess() throws {
   let now = Calendar.current.date(
     from: DateComponents(year: 2026, month: 4, day: 2, hour: 12, minute: 0, second: 0)
@@ -100,6 +162,7 @@ private func testApplySuccess() throws {
   let nextState = UsageRefreshController.applySuccess(
     snapshot: snapshot,
     pricingMode: .online,
+    lastUsageDetectedAtByAgent: ["Claude Code": now.addingTimeInterval(-60)],
     to: state,
     now: now
   )
@@ -113,6 +176,10 @@ private func testApplySuccess() throws {
   try expect(claude?.monthCost == 208.12, "successful refresh should update month cost")
   try expect(nextState.businessDays == 2, "successful refresh should recompute business days")
   try expectNear(claude?.avgPerDay ?? 0, 104.06, "successful refresh should recompute average")
+  try expect(
+    claude?.lastUsageDetectedAt == now.addingTimeInterval(-60),
+    "successful refresh should map last usage detection time onto the agent"
+  )
   try expect(codex?.isInstalled == false, "not-installed agent should be reflected in state")
   try expect(
     nextState.lastOnlinePricingRefreshAt == now,

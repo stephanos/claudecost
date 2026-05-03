@@ -56,6 +56,13 @@ func testStatusPresenter() throws {
     ) == "$12 CX",
     "only Codex installed should show CX only"
   )
+  try expect(
+    StatusPresenter.title(
+      for: codexOnlyState,
+      now: Date(timeIntervalSinceReferenceDate: 1_121)
+    ) == "? CX",
+    "stale Codex-only state should not fall back to the Claude abbreviation"
+  )
 
   let codexNotInstalledState = AppState(
     isRefreshing: false,

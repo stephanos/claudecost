@@ -1,8 +1,23 @@
 import Foundation
 
 func testMenuRowsBuilder() throws {
-  let claudeSpending = AgentSpending(name: "Claude Code", isInstalled: true, todayCost: 48.35, monthCost: 208.12, avgPerDay: 52.03)
-  let codexSpending = AgentSpending(name: "Codex", isInstalled: true, todayCost: 10.0, monthCost: 40.0, avgPerDay: 10.0)
+  let now = Date(timeIntervalSinceReferenceDate: 1_030)
+  let claudeSpending = AgentSpending(
+    name: "Claude Code",
+    isInstalled: true,
+    todayCost: 48.35,
+    monthCost: 208.12,
+    avgPerDay: 52.03,
+    lastUsageDetectedAt: now.addingTimeInterval(-40)
+  )
+  let codexSpending = AgentSpending(
+    name: "Codex",
+    isInstalled: true,
+    todayCost: 10.0,
+    monthCost: 40.0,
+    avgPerDay: 10.0,
+    lastUsageDetectedAt: now.addingTimeInterval(-15)
+  )
   let codexNotInstalled = AgentSpending(name: "Codex", isInstalled: false, todayCost: 0, monthCost: 0, avgPerDay: 0)
 
   let rows = MenuRowsBuilder.rows(
@@ -15,7 +30,7 @@ func testMenuRowsBuilder() throws {
     ),
     startAtLogin: .make(status: .enabled),
     appVersion: "0.1",
-    now: Date(timeIntervalSinceReferenceDate: 1_030)
+    now: now
   )
 
   try expect(
@@ -46,6 +61,10 @@ func testMenuRowsBuilder() throws {
     rows.contains(.disabled("Avg/Day: $53")),
     "average cost should round up to the next display dollar"
   )
+  try expect(
+    rows.contains(.disabled("Last usage: 40s ago")),
+    "Claude section should show when usage was last detected"
+  )
 
   // Codex section present and separated
   let claudeSectionIdx = rows.firstIndex(of: .section("Claude Code spending"))!
@@ -62,6 +81,10 @@ func testMenuRowsBuilder() throws {
   try expect(
     rows.contains(.disabled("Month: $40 (4 biz days)")),
     "Codex month cost should be shown"
+  )
+  try expect(
+    rows.contains(.disabled("Last usage: 15s ago")),
+    "Codex section should show when usage was last detected"
   )
 
   // Codex not installed

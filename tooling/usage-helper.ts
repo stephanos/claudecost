@@ -5,6 +5,7 @@ import path from "path";
 
 type AgentEntry = { name: string; found: boolean; today: number; month: number };
 type UsagePayload = { agents: AgentEntry[] };
+type AgentID = "claude" | "codex";
 
 function formatLocalDay(date: Date): string {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -247,20 +248,61 @@ async function loadCodexData(since: string, offline: boolean): Promise<AgentEntr
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
+const AGENT_LOADERS: Record<AgentID, (since: string, offline: boolean) => Promise<AgentEntry>> = {
+  claude: loadClaudeData,
+  codex: loadCodexData,
+};
+
+const ALL_AGENTS = Object.keys(AGENT_LOADERS) as AgentID[];
+
+function isAgentID(value: string): value is AgentID {
+  return value in AGENT_LOADERS;
+}
+
+function parseRequestedAgents(args: string[]): AgentID[] {
+  const requested = new Set<AgentID>();
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    let value: string | undefined;
+
+    if (arg === "--agent") {
+      value = args[++i];
+    } else if (arg?.startsWith("--agent=")) {
+      value = arg.slice("--agent=".length);
+    } else if (arg?.startsWith("--agents=")) {
+      value = arg.slice("--agents=".length);
+    } else {
+      continue;
+    }
+
+    if (!value) throw new Error("expected agent id after --agent");
+    for (const rawAgent of value.split(",")) {
+      const agent = rawAgent.trim();
+      if (!isAgentID(agent)) {
+        throw new Error(`unknown agent id: ${agent}`);
+      }
+      requested.add(agent);
+    }
+  }
+
+  return requested.size > 0 ? ALL_AGENTS.filter((agent) => requested.has(agent)) : ALL_AGENTS;
+}
+
 async function main() {
   const since = process.argv[2];
   if (!since) {
     throw new Error("expected month start argument in YYYYMMDD format");
   }
   const offline = process.argv.includes("--offline");
+  const requestedAgents = parseRequestedAgents(process.argv.slice(3));
 
-  const [claudeEntry, codexEntry] = await Promise.all([
-    loadClaudeData(since, offline),
-    loadCodexData(since, offline),
-  ]);
+  const agents = await Promise.all(
+    requestedAgents.map((agent) => AGENT_LOADERS[agent](since, offline))
+  );
 
   const payload: UsagePayload = {
-    agents: [claudeEntry, codexEntry],
+    agents,
   };
 
   process.stdout.write(`${JSON.stringify(payload)}\n`);

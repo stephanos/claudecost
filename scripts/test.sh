@@ -17,6 +17,8 @@ swiftc \
   Sources/AgentTally/PowerSource.swift \
   Sources/AgentTally/StatusPresenter.swift \
   Sources/AgentTally/TimeUtils.swift \
+  Sources/AgentTally/AgentKind.swift \
+  Sources/AgentTally/UsageDataFingerprint.swift \
   Sources/AgentTally/UsageFetcher.swift \
   Sources/AgentTally/UsagePayloadParser.swift \
   Sources/AgentTally/UsageRefreshController.swift \
@@ -24,6 +26,7 @@ swiftc \
   Tests/StatusPresenterHarness.swift \
   Tests/UsageRefreshControllerHarness.swift \
   Tests/UsageFetcherHarness.swift \
+  Tests/UsageDataFingerprintHarness.swift \
   Tests/UsagePayloadParserHarness.swift \
   Tests/TimeUtilsHarness.swift \
   Tests/MenuRowsHarness.swift \

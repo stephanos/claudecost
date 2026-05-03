@@ -56,6 +56,11 @@ public enum MenuRowsBuilder {
           rows.append(
             .disabled("Avg/Day: $\(StatusPresenter.displayDollarAmount(for: spending.avgPerDay))")
           )
+          rows.append(
+            .disabled(
+              "Last usage: \(StatusPresenter.lastUsageDetectedLabel(for: spending.lastUsageDetectedAt, now: now))"
+            )
+          )
         } else if !spending.isInstalled {
           rows.append(.disabled("\(spending.name): not installed"))
         }

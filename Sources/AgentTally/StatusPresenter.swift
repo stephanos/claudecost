@@ -2,6 +2,7 @@ import Foundation
 
 public enum StatusPresenter {
   public static let staleDataInterval: TimeInterval = 120
+  private static let placeholderAgent = AgentKind.claude
 
   public static func displayDollarAmount(for amount: Double) -> Int {
     guard amount > 0 else {
@@ -17,11 +18,11 @@ public enum StatusPresenter {
 
   public static func title(for state: AppState, now: Date = Date()) -> String {
     if shouldShowWarningSymbol(for: state) {
-      return "ERR CC"
+      return "ERR \(placeholderAgent.abbreviation)"
     }
 
     if shouldShowLoadingTitle(lastRefreshAt: state.lastRefreshAt, now: now) {
-      return "? CC"
+      return loadingTitle(for: state)
     }
 
     if state.lastRefreshAt != nil {
@@ -33,15 +34,22 @@ public enum StatusPresenter {
       }
     }
 
-    return "? CC"
+    return loadingTitle(for: state)
+  }
+
+  private static func loadingTitle(for state: AppState) -> String {
+    let abbreviations = state.agentSpendings
+      .filter { $0.isInstalled }
+      .map { abbreviation(for: $0.name) }
+    guard !abbreviations.isEmpty else {
+      return "? \(placeholderAgent.abbreviation)"
+    }
+
+    return "? \(abbreviations.joined(separator: " "))"
   }
 
   private static func abbreviation(for agentName: String) -> String {
-    switch agentName {
-    case "Claude Code": return "CC"
-    case "Codex": return "CX"
-    default: return agentName
-    }
+    AgentKind(displayName: agentName)?.abbreviation ?? agentName
   }
 
   public static func lastRefreshedLabel(for state: AppState, now: Date = Date()) -> String {
@@ -54,6 +62,17 @@ public enum StatusPresenter {
     }
 
     return "waiting for first refresh"
+  }
+
+  public static func lastUsageDetectedLabel(
+    for date: Date?,
+    now: Date = Date()
+  ) -> String {
+    guard let date else {
+      return "not detected"
+    }
+
+    return TimeUtils.formatRelativeTime(since: date, now: now)
   }
 
   public static func shouldShowLoadingTitle(

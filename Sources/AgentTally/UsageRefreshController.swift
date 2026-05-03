@@ -32,6 +32,7 @@ enum UsageRefreshController {
   static func applySuccess(
     snapshot: UsageSnapshot,
     pricingMode: PricingRefreshMode,
+    lastUsageDetectedAtByAgent: [String: Date] = [:],
     to state: AppState,
     now: Date = Date()
   ) -> AppState {
@@ -46,7 +47,8 @@ enum UsageRefreshController {
         todayCost: raw.today,
         monthCost: raw.month,
         avgPerDay: nextState.businessDays > 0 && raw.found
-          ? raw.month / Double(nextState.businessDays) : 0
+          ? raw.month / Double(nextState.businessDays) : 0,
+        lastUsageDetectedAt: lastUsageDetectedAtByAgent[raw.name]
       )
     }
     if pricingMode == .online {
@@ -86,5 +88,25 @@ enum UsageRefreshController {
     }
 
     return .offline
+  }
+
+  static func agentsNeedingRefresh(
+    pricingMode: PricingRefreshMode,
+    currentUsageDataScan: UsageDataScan,
+    cachedUsageDataFingerprints: [AgentKind: UsageDataFingerprint],
+    cachedAgentData: [AgentKind: AgentRawData]
+  ) -> [AgentKind] {
+    if pricingMode == .online {
+      return AgentKind.allCases
+    }
+
+    return AgentKind.allCases.filter { agent in
+      guard let currentFingerprint = currentUsageDataScan.agents[agent]?.fingerprint else {
+        return true
+      }
+
+      return cachedAgentData[agent] == nil
+        || cachedUsageDataFingerprints[agent] != currentFingerprint
+    }
   }
 }

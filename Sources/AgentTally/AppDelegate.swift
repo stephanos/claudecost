@@ -10,6 +10,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   private var timer: Timer?
   private var refreshTask: Task<Void, Never>?
   private var state = AppState()
+  private var lastSuccessfulAgentData: [AgentKind: AgentRawData] = [:]
+  private var lastUsageDataFingerprints: [AgentKind: UsageDataFingerprint] = [:]
   private let loginItemManager = LoginItemManager()
   private var startAtLoginViewState = StartAtLoginViewState.make(status: .notRegistered)
 
@@ -94,10 +96,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     refreshTask?.cancel()
     refreshTask = Task {
       do {
-        let snapshot = try await UsageFetcher.fetchUsage(
-          offline: request.pricingMode == .offline
+        let usageDataScan = await Task.detached(priority: .utility) {
+          UsageDataFingerprintBuilder.currentScan()
+        }.value
+
+        let agentsToRefresh = UsageRefreshController.agentsNeedingRefresh(
+          pricingMode: request.pricingMode,
+          currentUsageDataScan: usageDataScan,
+          cachedUsageDataFingerprints: lastUsageDataFingerprints,
+          cachedAgentData: lastSuccessfulAgentData
         )
-        applyRefreshSuccess(snapshot, pricingMode: request.pricingMode)
+
+        if !agentsToRefresh.isEmpty {
+          let snapshot = try await UsageFetcher.fetchUsage(
+            offline: request.pricingMode == .offline,
+            agents: agentsToRefresh
+          )
+          cache(snapshot: snapshot, usageDataScan: usageDataScan)
+        }
+
+        applyRefreshSuccess(
+          cachedSnapshot(),
+          pricingMode: request.pricingMode,
+          lastUsageDetectedAtByAgent: usageDataScan.lastUsageDetectedAtByAgentName
+        )
       } catch {
         guard !Task.isCancelled else {
           return
@@ -109,10 +131,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
   }
 
-  private func applyRefreshSuccess(_ snapshot: UsageSnapshot, pricingMode: PricingRefreshMode) {
+  private func cache(snapshot: UsageSnapshot, usageDataScan: UsageDataScan) {
+    for rawData in snapshot.agents {
+      guard let agent = AgentKind(displayName: rawData.name) else {
+        continue
+      }
+
+      lastSuccessfulAgentData[agent] = rawData
+      if let fingerprint = usageDataScan.agents[agent]?.fingerprint {
+        lastUsageDataFingerprints[agent] = fingerprint
+      }
+    }
+  }
+
+  private func cachedSnapshot() -> UsageSnapshot {
+    UsageSnapshot(
+      agents: AgentKind.allCases.compactMap { agent in
+        lastSuccessfulAgentData[agent]
+      }
+    )
+  }
+
+  private func applyRefreshSuccess(
+    _ snapshot: UsageSnapshot,
+    pricingMode: PricingRefreshMode,
+    lastUsageDetectedAtByAgent: [String: Date]
+  ) {
     state = UsageRefreshController.applySuccess(
       snapshot: snapshot,
       pricingMode: pricingMode,
+      lastUsageDetectedAtByAgent: lastUsageDetectedAtByAgent,
       to: state
     )
     renderTitle()
