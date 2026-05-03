@@ -100,6 +100,10 @@ func testStatusPresenter() throws {
     ) == "? CC",
     "stale cached data should show loading title even when idle"
   )
+  try expect(
+    StatusPresenter.title(for: AppState()) == "?",
+    "unknown agent state should not imply Claude usage"
+  )
 
   let fractionalState = AppState(
     isRefreshing: false,
@@ -154,6 +158,10 @@ func testStatusPresenter() throws {
   try expect(
     StatusPresenter.lastRefreshedLabel(for: AppState(isRefreshing: true)) == "refreshing...",
     "first refresh should surface a refreshing status"
+  )
+  try expect(
+    StatusPresenter.title(for: AppState(isRefreshing: true)) == "...",
+    "first refresh title should show an active loading indicator without implying an agent"
   )
   try expect(
     StatusPresenter.lastRefreshedLabel(for: AppState()) == "waiting for first refresh",

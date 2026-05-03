@@ -2,7 +2,6 @@ import Foundation
 
 public enum StatusPresenter {
   public static let staleDataInterval: TimeInterval = 120
-  private static let placeholderAgent = AgentKind.claude
 
   public static func displayDollarAmount(for amount: Double) -> Int {
     guard amount > 0 else {
@@ -17,6 +16,10 @@ public enum StatusPresenter {
   }
 
   public static func title(for state: AppState, now: Date = Date()) -> String {
+    if state.isRefreshing && state.lastRefreshAt == nil && state.agentSpendings.isEmpty {
+      return "..."
+    }
+
     if shouldShowLoadingTitle(lastRefreshAt: state.lastRefreshAt, now: now) {
       return loadingTitle(for: state)
     }
@@ -42,7 +45,7 @@ public enum StatusPresenter {
       .filter { state.lastErrorByAgent[$0] != nil }
       .map(\.abbreviation)
     guard !abbreviations.isEmpty else {
-      return "ERR \(placeholderAgent.abbreviation)"
+      return "ERR"
     }
 
     return "ERR \(abbreviations.joined(separator: " "))"
@@ -53,7 +56,7 @@ public enum StatusPresenter {
       .filter { $0.isInstalled }
       .map { abbreviation(for: $0.name) }
     guard !abbreviations.isEmpty else {
-      return "? \(placeholderAgent.abbreviation)"
+      return "?"
     }
 
     return "? \(abbreviations.joined(separator: " "))"
