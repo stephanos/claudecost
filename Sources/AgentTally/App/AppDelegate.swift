@@ -53,7 +53,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     timer = nil
     refreshTask?.cancel()
     refreshTask = nil
-    UsageFetcher.cancelActiveHelper()
   }
 
   func menuNeedsUpdate(_ menu: NSMenu) {

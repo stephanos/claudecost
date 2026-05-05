@@ -111,20 +111,3 @@ private func testScan(
     timeZone: TimeZone(secondsFromGMT: 0)!
   )
 }
-
-private func makeTemporaryDirectory() throws -> URL {
-  let url = URL(fileURLWithPath: NSTemporaryDirectory())
-    .appendingPathComponent("agenttally-\(UUID().uuidString)", isDirectory: true)
-  try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-  return url
-}
-
-private func writeTestFile(_ url: URL, contents: String, modifiedAt: TimeInterval) throws {
-  let directory = url.deletingLastPathComponent()
-  try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-  try Data(contents.utf8).write(to: url)
-  try FileManager.default.setAttributes(
-    [.modificationDate: Date(timeIntervalSince1970: modifiedAt)],
-    ofItemAtPath: url.path
-  )
-}

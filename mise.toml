@@ -4,26 +4,19 @@ swift = "system"
 
 [tasks.install-deps]
 run = "bun install"
-description = "Install the helper's Bun dependencies"
+description = "Install formatting dependencies"
 
 [tasks.fmt]
-run = "swift format format --in-place --recursive Package.swift Sources Tests && bun x prettier --write README.md package.json tooling/**/*.ts .github/workflows/*.yml"
+run = "swift format format --in-place --recursive Package.swift Sources Tests && bun x prettier --write README.md package.json .github/workflows/*.yml"
 depends = ["install-deps"]
-description = "Format Swift and helper sources"
-
-[tasks.build-helper]
-run = "bash scripts/build_helper.sh"
-depends = ["install-deps"]
-description = "Build the compiled Bun usage helper"
+description = "Format Swift sources and project metadata"
 
 [tasks.build]
 run = "bash scripts/build_app.sh release"
-depends = ["build-helper"]
 description = "Build release app bundle"
 
 [tasks.dev]
 run = "bash scripts/build_app.sh debug && .build/debug/AgentTally.app/Contents/MacOS/AgentTally"
-depends = ["build-helper"]
 description = "Build and run debug app bundle"
 
 [tasks.demo]
@@ -50,11 +43,11 @@ run = "bash scripts/test.sh"
 description = "Run the Swift test harness"
 
 [tasks.lint]
-run = "swift format lint --recursive --strict Package.swift Sources Tests && bun x prettier --check README.md package.json tooling/**/*.ts .github/workflows/*.yml"
+run = "swift format lint --recursive --strict Package.swift Sources Tests && bun x prettier --check README.md package.json .github/workflows/*.yml"
 depends = ["install-deps"]
-description = "Lint Swift and helper sources"
+description = "Lint Swift sources and project metadata"
 
 [tasks.check]
 run = "bash scripts/build_app.sh release"
-depends = ["lint", "test", "build-helper"]
+depends = ["lint", "test"]
 description = "Run lint checks, tests, and verify the release app bundle"

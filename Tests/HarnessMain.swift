@@ -5,10 +5,13 @@ struct TestHarness {
   static func main() throws {
     let tests: [(String, () throws -> Void)] = [
       ("StatusPresenter", testStatusPresenter),
+      ("ClaudeUsageTracker", testClaudeUsageTracker),
+      ("CodexUsageTracker", testCodexUsageTracker),
+      ("NativeUsageLoader", testNativeUsageLoader),
+      ("UsagePricing", testUsagePricing),
       ("UsageRefreshController", testUsageRefreshController),
-      ("UsageFetcher", testUsageFetcherTimeoutDecision),
+      ("UsageFetcher", testUsageFetcher),
       ("UsageDataScanner", testUsageDataScanner),
-      ("UsagePayloadParser", testUsagePayloadParser),
       ("TimeUtils", testTimeUtils),
       ("MenuRowsBuilder", testMenuRowsBuilder),
       ("DemoMode", testDemoMode),

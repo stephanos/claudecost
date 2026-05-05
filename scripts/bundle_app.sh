@@ -7,7 +7,6 @@ contents_dir="${app_dir}/Contents"
 macos_dir="${contents_dir}/MacOS"
 frameworks_dir="${contents_dir}/Frameworks"
 executable=".build/${configuration}/AgentTally"
-helper=".build/agenttally-usage-helper"
 plist_path="${contents_dir}/Info.plist"
 codesign_identity="${CODESIGN_IDENTITY:--}"
 sparkle_framework="$(
@@ -23,11 +22,6 @@ if [[ ! -x "${executable}" ]]; then
   exit 1
 fi
 
-if [[ ! -x "${helper}" ]]; then
-  echo "missing helper: ${helper}" >&2
-  exit 1
-fi
-
 if [[ -z "${sparkle_framework}" || ! -d "${sparkle_framework}" ]]; then
   echo "missing Sparkle.framework; run swift package resolve/build first" >&2
   exit 1
@@ -37,10 +31,8 @@ rm -rf "${app_dir}"
 mkdir -p "${macos_dir}" "${frameworks_dir}"
 
 cp "${executable}" "${macos_dir}/AgentTally"
-cp "${helper}" "${macos_dir}/agenttally-usage-helper"
 ditto "${sparkle_framework}" "${frameworks_dir}/Sparkle.framework"
 bash scripts/generate_info_plist.sh "${plist_path}"
 
-codesign --force --sign "${codesign_identity}" "${macos_dir}/agenttally-usage-helper"
 codesign --force --sign "${codesign_identity}" "${macos_dir}/AgentTally"
 codesign --force --sign "${codesign_identity}" "${app_dir}"

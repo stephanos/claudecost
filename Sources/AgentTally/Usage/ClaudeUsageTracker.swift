@@ -1,0 +1,188 @@
+import Foundation
+
+enum ClaudeUsageTracker {
+  private static let providerPrefixes = [
+    "anthropic/",
+    "anthropic.claude-",
+    "claude-",
+    "openrouter/anthropic/",
+    "openrouter/openai/",
+  ]
+
+  private struct Entry: Decodable {
+    let timestamp: String?
+    let sessionId: String?
+    let requestId: String?
+    let costUSD: Double?
+    let message: Message?
+  }
+
+  private struct Message: Decodable {
+    let id: String?
+    let model: String?
+    let usage: Usage?
+  }
+
+  private struct Usage: Decodable {
+    let inputTokens: Int?
+    let outputTokens: Int?
+    let cacheCreationInputTokens: Int?
+    let cacheReadInputTokens: Int?
+
+    enum CodingKeys: String, CodingKey {
+      case inputTokens = "input_tokens"
+      case outputTokens = "output_tokens"
+      case cacheCreationInputTokens = "cache_creation_input_tokens"
+      case cacheReadInputTokens = "cache_read_input_tokens"
+    }
+  }
+
+  static func load(
+    since: String,
+    pricing: [String: ModelPricing],
+    context: UsageTrackingContext
+  ) -> AgentRawData {
+    let projectsDirectories = claudeProjectsDirectories(context: context)
+    guard !projectsDirectories.isEmpty else {
+      return AgentRawData(name: "Claude Code", found: false, today: 0, month: 0)
+    }
+
+    let sinceDate = isoDateString(fromCompactDate: since)
+    let today = formatLocalDay(context.now)
+    var todayCost = 0.0
+    var monthCost = 0.0
+    var seenKeys = Set<String>()
+
+    for projectsDirectory in projectsDirectories {
+      for fileURL in walkJSONLFiles(under: projectsDirectory) {
+        let projectName =
+          fileURL.path.replacingOccurrences(of: projectsDirectory.path + "/", with: "").split(
+            separator: "/"
+          ).first.map(String.init) ?? "unknown"
+
+        guard let content = try? String(contentsOf: fileURL, encoding: .utf8) else {
+          continue
+        }
+
+        for rawLine in content.split(whereSeparator: \.isNewline) {
+          let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+          guard !line.isEmpty else {
+            continue
+          }
+
+          guard let entry = try? JSONDecoder().decode(Entry.self, from: Data(line.utf8)),
+            let timestamp = entry.timestamp,
+            let usage = entry.message?.usage,
+            let timestampDate = parseTimestamp(timestamp)
+          else {
+            continue
+          }
+
+          let localDate = formatLocalDay(timestampDate)
+          guard localDate >= sinceDate else {
+            continue
+          }
+
+          let sessionId =
+            entry.sessionId ?? "\(projectName):\(fileURL.deletingPathExtension().lastPathComponent)"
+          let dedupeKey =
+            entry.requestId
+            ?? entry.message?.id
+            ?? "\(fileURL.path)|\(timestamp)|\(sessionId)|\(entry.message?.model ?? "<unknown>")|\(usage.inputTokens ?? 0)|\(usage.outputTokens ?? 0)|\(usage.cacheCreationInputTokens ?? 0)|\(usage.cacheReadInputTokens ?? 0)"
+
+          guard seenKeys.insert(dedupeKey).inserted else {
+            continue
+          }
+
+          let calculatedCost =
+            entry.message?.model.flatMap {
+              UsagePricing.lookupPricing(
+                modelName: $0,
+                pricing: pricing,
+                providerPrefixes: providerPrefixes
+              )
+            }.map {
+              UsagePricing.calculateClaudeCost(
+                inputTokens: usage.inputTokens ?? 0,
+                outputTokens: usage.outputTokens ?? 0,
+                cacheCreationInputTokens: usage.cacheCreationInputTokens ?? 0,
+                cacheReadInputTokens: usage.cacheReadInputTokens ?? 0,
+                pricing: $0
+              )
+            } ?? 0
+
+          let effectiveCost =
+            if let explicitCost = entry.costUSD, explicitCost.isFinite {
+              explicitCost
+            } else {
+              calculatedCost
+            }
+
+          monthCost += effectiveCost
+          if localDate == today {
+            todayCost += effectiveCost
+          }
+        }
+      }
+    }
+
+    return AgentRawData(name: "Claude Code", found: true, today: todayCost, month: monthCost)
+  }
+
+  private static func claudeProjectsDirectories(context: UsageTrackingContext) -> [URL] {
+    let configured = (context.environment["CLAUDE_CONFIG_DIR"] ?? "")
+      .split(separator: ",")
+      .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+      .filter { !$0.isEmpty }
+
+    let roots =
+      configured.isEmpty
+      ? [
+        context.homeDirectory.appendingPathComponent(".config").appendingPathComponent("claude"),
+        context.homeDirectory.appendingPathComponent(".claude"),
+      ]
+      : configured.map { URL(fileURLWithPath: $0) }
+
+    return
+      roots
+      .map { $0.appendingPathComponent("projects") }
+      .filter { FileManager.default.fileExists(atPath: $0.path) }
+  }
+
+  private static func walkJSONLFiles(under directory: URL) -> [URL] {
+    guard FileManager.default.fileExists(atPath: directory.path) else {
+      return []
+    }
+
+    var files: [URL] = []
+    let enumerator = FileManager.default.enumerator(
+      at: directory,
+      includingPropertiesForKeys: nil
+    )
+
+    while let next = enumerator?.nextObject() as? URL {
+      if next.pathExtension == "jsonl" {
+        files.append(next)
+      }
+    }
+
+    return files
+  }
+
+  private static func formatLocalDay(_ date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.calendar = Calendar.current
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = .current
+    formatter.dateFormat = "yyyy-MM-dd"
+    return formatter.string(from: date)
+  }
+
+  private static func parseTimestamp(_ value: String) -> Date? {
+    ISO8601DateFormatter().date(from: value)
+  }
+
+  private static func isoDateString(fromCompactDate value: String) -> String {
+    "\(value.prefix(4))-\(value.dropFirst(4).prefix(2))-\(value.dropFirst(6).prefix(2))"
+  }
+}

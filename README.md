@@ -57,7 +57,7 @@ For screenshot/demo work with canned fixture data instead of live usage:
 mise run demo
 ```
 
-`mise` manages the Bun toolchain for this project and uses the system Swift toolchain. The build tasks install the local `ccusage` dependency, compile the helper, and stage both binaries into `AgentTally.app`.
+`mise` manages the Bun toolchain for formatting tasks and uses the system Swift toolchain. The app tracks Claude Code and Codex usage natively in Swift and refreshes cached pricing dynamically at runtime.
 
 ## Releases
 
