@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   private let runtimeMode = AppRuntimeMode.current()
   private let loginItemManager = LoginItemManager()
   private let refreshIntervalPreference = RefreshIntervalPreference()
+  private let refreshGenerationGate = RefreshGenerationGate()
   private lazy var updaterController = SPUStandardUpdaterController(
     startingUpdater: true,
     updaterDelegate: self,
@@ -162,30 +163,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     refreshTask?.cancel()
     refreshTask = Task {
-      defer {
-        refreshTask = nil
-      }
+      let generation = self.refreshGenerationGate.nextGeneration()
 
       let usageDataScan = await Task.detached(priority: .utility) {
         UsageDataScanner.currentScan()
       }.value
 
+      // Check generation after usageDataScan fetch
+      guard self.refreshGenerationGate.isCurrent(generation) else {
+        return
+      }
+
       let agentsToRefresh = UsageRefreshController.agentsNeedingRefresh(
         pricingMode: request.pricingMode,
         currentUsageDataScan: usageDataScan,
-        cachedUsageDataFingerprints: lastUsageDataFingerprints,
-        cachedAgentData: lastSuccessfulAgentData,
-        lastErrorByAgent: state.lastErrorByAgent
+        cachedUsageDataFingerprints: self.lastUsageDataFingerprints,
+        cachedAgentData: self.lastSuccessfulAgentData,
+        lastErrorByAgent: self.state.lastErrorByAgent
       )
 
-      var nextErrorByAgent = state.lastErrorByAgent
+      var nextErrorByAgent = self.state.lastErrorByAgent
       for agent in agentsToRefresh {
         do {
           let snapshot = try await UsageFetcher.fetchUsage(
             offline: request.pricingMode == .offline,
             agents: [agent]
           )
-          cache(snapshot: snapshot, usageDataScan: usageDataScan)
+
+          // Check generation after each fetch
+          guard self.refreshGenerationGate.isCurrent(generation) else {
+            return
+          }
+
+          self.cache(snapshot: snapshot, usageDataScan: usageDataScan)
           nextErrorByAgent.removeValue(forKey: agent)
         } catch {
           guard !Task.isCancelled else {
@@ -200,8 +210,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
       }
 
-      applyRefreshSuccess(
-        cachedSnapshot(),
+      // Check generation before applying state
+      guard self.refreshGenerationGate.isCurrent(generation) else {
+        return
+      }
+
+      self.applyRefreshSuccess(
+        self.cachedSnapshot(),
         pricingMode: request.pricingMode,
         lastUsageDetectedAtByAgent: usageDataScan.lastUsageDetectedAtByAgent,
         lastErrorByAgent: nextErrorByAgent

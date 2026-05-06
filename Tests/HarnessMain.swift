@@ -5,6 +5,7 @@ struct TestHarness {
   @MainActor
   static func main() throws {
     let tests: [(String, () throws -> Void)] = [
+      ("RefreshGenerationGate", testRefreshGenerationGate),
       ("StatusPresenter", testStatusPresenter),
       ("ClaudeUsageTracker", testClaudeUsageTracker),
       ("CodexUsageTracker", testCodexUsageTracker),
