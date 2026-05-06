@@ -2,6 +2,7 @@ import Foundation
 
 func testCodexUsageTracker() throws {
   try testCodexTrackerUsesLastTokenUsage()
+  try testCodexTrackerParsesFractionalSecondTimestamps()
   try testCodexTrackerReconstructsTotalsWhenLastUsageIsMissing()
   try testCodexTrackerMatchesAliasedModelPricing()
 }
@@ -45,6 +46,42 @@ private func testCodexTrackerUsesLastTokenUsage() throws {
 
   try expect(raw.found, "Codex should be found when session files exist")
   try expect(raw.today > 0, "last_token_usage should produce a cost")
+}
+
+private func testCodexTrackerParsesFractionalSecondTimestamps() throws {
+  let homeDirectory = try makeTemporaryDirectory()
+  defer { try? FileManager.default.removeItem(at: homeDirectory) }
+
+  let sessionFile =
+    homeDirectory
+    .appendingPathComponent(".codex")
+    .appendingPathComponent("sessions")
+    .appendingPathComponent("2026")
+    .appendingPathComponent("05")
+    .appendingPathComponent("04")
+    .appendingPathComponent("session.jsonl")
+
+  try writeTestFile(
+    sessionFile,
+    contents: [
+      #"{"timestamp":"2026-05-04T08:00:00.000Z","type":"turn_context","payload":{"model":"gpt-5"}}"#,
+      #"{"timestamp":"2026-05-04T08:01:00.123Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":1000,"cached_input_tokens":250,"output_tokens":100}}}}"#,
+    ].joined(separator: "\n"),
+    modifiedAt: 1_500
+  )
+
+  let raw = CodexUsageTracker.load(
+    since: "20260501",
+    pricing: UsagePricing.bundled,
+    context: UsageTrackingContext(
+      environment: [:],
+      homeDirectory: homeDirectory,
+      now: codexTrackerNow,
+      pricingDataLoader: { _ in Data() }
+    )
+  )
+
+  try expect(raw.today > 0, "fractional-second timestamps should still produce a cost")
 }
 
 private func testCodexTrackerReconstructsTotalsWhenLastUsageIsMissing() throws {

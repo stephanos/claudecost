@@ -81,7 +81,7 @@ enum CodexUsageTracker {
           let payload = entry["payload"] as? [String: Any],
           payload["type"] as? String == "token_count",
           let timestamp = entry["timestamp"] as? String,
-          let timestampDate = ISO8601DateFormatter().date(from: timestamp),
+          let timestampDate = parseTimestamp(timestamp),
           let modelName = currentModel,
           let modelPricing = UsagePricing.lookupPricing(
             modelName: modelName,
@@ -176,5 +176,15 @@ enum CodexUsageTracker {
 
   private static func isoDateString(fromCompactDate value: String) -> String {
     "\(value.prefix(4))-\(value.dropFirst(4).prefix(2))-\(value.dropFirst(6).prefix(2))"
+  }
+
+  private static func parseTimestamp(_ value: String) -> Date? {
+    let fractionalFormatter = ISO8601DateFormatter()
+    fractionalFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    if let date = fractionalFormatter.date(from: value) {
+      return date
+    }
+
+    return ISO8601DateFormatter().date(from: value)
   }
 }
