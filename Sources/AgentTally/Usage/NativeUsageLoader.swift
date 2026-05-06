@@ -9,6 +9,7 @@ enum NativeUsageLoader {
   ) async throws -> UsageSnapshot {
     let pricing = try await UsagePricingStore.loadSharedPricing(
       offline: offline,
+      refreshIfPossible: !offline,
       context: context
     )
 

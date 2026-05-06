@@ -2,6 +2,8 @@ import Foundation
 
 func testUsagePricing() throws {
   try testLoadSharedPricingUsesFreshCache()
+  try testLoadSharedPricingRefreshesOnlineEvenWithFreshCache()
+  try testLoadSharedPricingFallsBackToFreshCacheWhenForcedRefreshFails()
   try testLoadSharedPricingFallsBackToBundledOffline()
   try testBundledPricingIncludesCurrentFallbackModels()
   try testLookupPricingMatchesAliasesAndProviders()
@@ -196,4 +198,111 @@ private func testCalculateCodexCostUsesCachedInputRate() throws {
 
   let expectedCost = 75.0 * 1.0 + 25.0 * 0.25 + 3.0 * 10.0
   try expectNear(cost, expectedCost, "Codex pricing should discount cached input tokens")
+}
+
+private func testLoadSharedPricingRefreshesOnlineEvenWithFreshCache() throws {
+  let homeDirectory = try makeTemporaryDirectory()
+  defer { try? FileManager.default.removeItem(at: homeDirectory) }
+
+  let cacheURL =
+    homeDirectory
+    .appendingPathComponent(".cache")
+    .appendingPathComponent("agenttally")
+    .appendingPathComponent("litellm-pricing.json")
+
+  try FileManager.default.createDirectory(
+    at: cacheURL.deletingLastPathComponent(),
+    withIntermediateDirectories: true
+  )
+
+  let cached = PricingCacheFile(
+    fetchedAt: Date(timeIntervalSince1970: 10_000),
+    pricing: [
+      "claude-sonnet-4-20250514": ModelPricing(
+        inputCostPerToken: 0.1,
+        outputCostPerToken: 0.2,
+        cacheCreationInputTokenCost: nil,
+        cacheReadInputTokenCost: nil,
+        inputCostPerTokenAbove200kTokens: nil,
+        outputCostPerTokenAbove200kTokens: nil,
+        cacheCreationInputTokenCostAbove200kTokens: nil,
+        cacheReadInputTokenCostAbove200kTokens: nil
+      )
+    ]
+  )
+  try JSONEncoder().encode(cached).write(to: cacheURL)
+
+  let pricing = try waitFor {
+    try await UsagePricingStore.loadSharedPricing(
+      offline: false,
+      refreshIfPossible: true,
+      context: UsageTrackingContext(
+        environment: [:],
+        homeDirectory: homeDirectory,
+        now: Date(timeIntervalSince1970: 10_100),
+        pricingDataLoader: { _ in
+          Data(
+            #"{"claude-sonnet-4-20250514":{"input_cost_per_token":0.3,"output_cost_per_token":0.4}}"#
+              .utf8
+          )
+        }
+      )
+    )
+  }
+
+  try expect(
+    pricing["claude-sonnet-4-20250514"]?.inputCostPerToken == 0.3,
+    "forced online refresh should replace a still-fresh cache"
+  )
+}
+
+private func testLoadSharedPricingFallsBackToFreshCacheWhenForcedRefreshFails() throws {
+  let homeDirectory = try makeTemporaryDirectory()
+  defer { try? FileManager.default.removeItem(at: homeDirectory) }
+
+  let cacheURL =
+    homeDirectory
+    .appendingPathComponent(".cache")
+    .appendingPathComponent("agenttally")
+    .appendingPathComponent("litellm-pricing.json")
+
+  try FileManager.default.createDirectory(
+    at: cacheURL.deletingLastPathComponent(),
+    withIntermediateDirectories: true
+  )
+
+  let cached = PricingCacheFile(
+    fetchedAt: Date(timeIntervalSince1970: 10_000),
+    pricing: [
+      "claude-sonnet-4-20250514": ModelPricing(
+        inputCostPerToken: 0.1,
+        outputCostPerToken: 0.2,
+        cacheCreationInputTokenCost: nil,
+        cacheReadInputTokenCost: nil,
+        inputCostPerTokenAbove200kTokens: nil,
+        outputCostPerTokenAbove200kTokens: nil,
+        cacheCreationInputTokenCostAbove200kTokens: nil,
+        cacheReadInputTokenCostAbove200kTokens: nil
+      )
+    ]
+  )
+  try JSONEncoder().encode(cached).write(to: cacheURL)
+
+  let pricing = try waitFor {
+    try await UsagePricingStore.loadSharedPricing(
+      offline: false,
+      refreshIfPossible: true,
+      context: UsageTrackingContext(
+        environment: [:],
+        homeDirectory: homeDirectory,
+        now: Date(timeIntervalSince1970: 10_100),
+        pricingDataLoader: { _ in throw TestFailure(description: "network unavailable") }
+      )
+    )
+  }
+
+  try expect(
+    pricing["claude-sonnet-4-20250514"]?.inputCostPerToken == 0.1,
+    "forced online refresh should fall back to cache when the request fails"
+  )
 }

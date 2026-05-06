@@ -9,6 +9,7 @@ enum UsagePricingStore {
 
   static func loadSharedPricing(
     offline: Bool,
+    refreshIfPossible: Bool = false,
     context: UsageTrackingContext
   ) async throws -> [String: ModelPricing] {
     let cacheURL = context.homeDirectory
@@ -16,7 +17,8 @@ enum UsagePricingStore {
       .appendingPathComponent("agenttally")
       .appendingPathComponent("litellm-pricing.json")
 
-    if let cached = readCache(at: cacheURL),
+    if !refreshIfPossible,
+      let cached = readCache(at: cacheURL),
       context.now.timeIntervalSince(cached.fetchedAt) < cacheTTL,
       !cached.pricing.isEmpty
     {
