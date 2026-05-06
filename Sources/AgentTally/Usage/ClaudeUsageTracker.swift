@@ -178,8 +178,18 @@ enum ClaudeUsageTracker {
     return formatter.string(from: date)
   }
 
-  private static func parseTimestamp(_ value: String) -> Date? {
-    ISO8601DateFormatter().date(from: value)
+  private static func parseTimestamp(_ timestamp: String) -> Date? {
+    // Try parsing with fractional seconds first (most common from Claude API)
+    let formatterWithFractional = ISO8601DateFormatter()
+    formatterWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    if let date = formatterWithFractional.date(from: timestamp) {
+      return date
+    }
+
+    // Fall back to plain ISO8601 without fractional seconds
+    let formatterPlain = ISO8601DateFormatter()
+    formatterPlain.formatOptions = [.withInternetDateTime]
+    return formatterPlain.date(from: timestamp)
   }
 
   private static func isoDateString(fromCompactDate value: String) -> String {

@@ -4,6 +4,7 @@ func testClaudeUsageTracker() throws {
   try testClaudeTrackerUsesCostUSDWhenPresent()
   try testClaudeTrackerDeduplicatesDuplicateMessages()
   try testClaudeTrackerSkipsMalformedLines()
+  try testClaudeTrackerParsesFractionalSecondTimestamps()
 }
 
 private let claudeTrackerNow = Calendar.current.date(
@@ -120,4 +121,38 @@ private func testClaudeTrackerSkipsMalformedLines() throws {
   )
 
   try expect(raw.today > 0, "malformed lines should be ignored when valid usage lines exist")
+}
+
+private func testClaudeTrackerParsesFractionalSecondTimestamps() throws {
+  let homeDirectory = try makeTemporaryDirectory()
+  defer { try? FileManager.default.removeItem(at: homeDirectory) }
+
+  let usageFile =
+    homeDirectory
+    .appendingPathComponent(".claude")
+    .appendingPathComponent("projects")
+    .appendingPathComponent("demo")
+    .appendingPathComponent("usage.jsonl")
+
+  try writeTestFile(
+    usageFile,
+    contents: [
+      #"{"sessionId":"session-1","timestamp":"2026-05-04T08:00:00.123Z","message":{"id":"m1","model":"claude-opus","usage":{"input_tokens":100,"output_tokens":50}}}"#,
+      #"{"sessionId":"session-1","timestamp":"2026-05-04T08:01:00.456789Z","message":{"id":"m2","model":"claude-sonnet-4-20250514","usage":{"input_tokens":200,"output_tokens":75}}}"#,
+    ].joined(separator: "\n"),
+    modifiedAt: 4_000
+  )
+
+  let raw = ClaudeUsageTracker.load(
+    since: "20260501",
+    pricing: UsagePricing.bundled,
+    context: UsageTrackingContext(
+      environment: [:],
+      homeDirectory: homeDirectory,
+      now: claudeTrackerNow,
+      pricingDataLoader: { _ in Data() }
+    )
+  )
+
+  try expect(raw.today > 0, "should parse both requests with fractional-second timestamps")
 }
