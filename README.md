@@ -12,9 +12,9 @@ The app shows Claude Code and Codex spend for today and the current month.
 
 ## Install
 
-1. Download [`AgentTally.app.zip`](https://github.com/stephanos/agenttally-macos/releases/latest)
-2. Unzip it
-3. Move `AgentTally.app` to `/Applications`
+1. Download [`AgentTally.dmg`](https://github.com/stephanos/agenttally-macos/releases/latest)
+2. Open the disk image
+3. Drag `AgentTally.app` to `/Applications`
 4. Open `AgentTally.app`
 
 On first launch, macOS may ask you to confirm opening the app.
@@ -57,12 +57,4 @@ git push origin v0.10
 ```
 
 Pushing the tag runs the GitHub Actions release workflow, which builds the app,
-uploads `AgentTally.app.zip`, publishes `appcast.xml`, and makes the release available to Sparkle.
-
-Release archives are signed for Sparkle updates with an EdDSA key. For local
-releases, the private key is read from the macOS Keychain. For GitHub Actions,
-set `SPARKLE_PRIVATE_ED_KEY` to the value exported by:
-
-```sh
-.build/artifacts/sparkle/Sparkle/bin/generate_keys -x sparkle_private_key
-```
+uploads `AgentTally.dmg`, publishes `appcast.xml`, and makes the release available to Sparkle.
